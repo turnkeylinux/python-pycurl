@@ -1159,6 +1159,11 @@ do_curl_setopt(CurlObject *self, PyObject *args)
         return Py_None;
     }
 
+#ifndef PY_LONG_LONG
+#define PY_LONG_LONG long long
+#define PY_LONG_LONG_CAVOK_HACK
+#endif
+
     /* Handle the case of long arguments (used by *LARGE options) */
     if (PyLong_Check(obj)) {
         PY_LONG_LONG d = PyLong_AsLongLong(obj);
@@ -1179,6 +1184,11 @@ do_curl_setopt(CurlObject *self, PyObject *args)
         Py_INCREF(Py_None);
         return Py_None;
     }
+
+#ifdef PY_LONG_LONG_CAVOK_HACK
+#undef PY_LONG_LONG
+#undef PY_LONG_LONG_CAVOK_HACK
+#endif
 
 #undef IS_LONG_OPTION
 #undef IS_OFF_T_OPTION

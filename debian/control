@@ -1,0 +1,37 @@
+Source: pycurl
+Section: python
+Priority: extra
+Maintainer: Domenico Andreoli <cavok@debian.org>
+Uploaders: Matthias Klose <doko@debian.org>
+Build-Depends: debhelper (>> 3.0.0), python2.2-dev, python2.3-dev, python2.4-dev, libcurl3-dev (>= 7.13.2)
+Standards-Version: 3.6.1
+
+Package: python2.2-pycurl
+Architecture: any
+Suggests: libcurl3-dev
+Depends: ${shlibs:Depends}, python2.2
+Description: Python bindings to libcurl
+ This module provides the Python bindings to libcurl. Please refer to
+ the libcurl documentation available in libcurl3-dev Debian package.
+ .
+  Homepage: http://pycurl.sourceforge.net
+
+Package: python2.3-pycurl
+Architecture: any
+Suggests: libcurl3-dev
+Depends: ${shlibs:Depends}, python2.3
+Description: Python bindings to libcurl
+ This module provides the Python bindings to libcurl. Please refer to
+ the libcurl documentation available in libcurl3-dev Debian package.
+ .
+  Homepage: http://pycurl.sourceforge.net
+
+Package: python2.4-pycurl
+Architecture: any
+Suggests: libcurl3-dev
+Depends: ${shlibs:Depends}, python2.4
+Description: Python bindings to libcurl
+ This module provides the Python bindings to libcurl. Please refer to
+ the libcurl documentation available in libcurl3-dev Debian package.
+ .
+  Homepage: http://pycurl.sourceforge.net

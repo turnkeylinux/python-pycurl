@@ -17,7 +17,7 @@ from distutils.util import split_quoted
 from distutils.version import LooseVersion
 
 include_dirs = []
-define_macros = []
+define_macros = [ ('HAVE_CURL_GNUTLS', 1) ]
 library_dirs = []
 libraries = []
 runtime_library_dirs = []
@@ -188,7 +188,6 @@ setup_args = get_kw(
     maintainer_email="kjetilja at gmail.com, markus at oberhumer.com",
     url="http://pycurl.sourceforge.net/",
     license="LGPL/MIT",
-    data_files=get_data_files(),
     ext_modules=[ext],
     long_description="""
 This module provides Python bindings for the cURL library.""",

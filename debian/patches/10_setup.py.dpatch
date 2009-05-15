@@ -1,0 +1,27 @@
+#! /bin/sh /usr/share/dpatch/dpatch-run
+## 10_setup.py.dpatch by Sandro Tosi <morph@debian.org>
+##
+## All lines beginning with `## DP:' are a description of the patch.
+## DP: Adjust setup.py file for Debian architecture
+
+@DPATCH@
+diff -urNad pycurl~/setup.py pycurl/setup.py
+--- pycurl~/setup.py	2008-04-22 16:00:45.000000000 +0200
++++ pycurl/setup.py	2008-05-31 22:54:56.540671465 +0200
+@@ -17,7 +17,7 @@
+ from distutils.version import LooseVersion
+ 
+ include_dirs = []
+-define_macros = []
++define_macros = [ ('HAVE_CURL_GNUTLS', 1) ]
+ library_dirs = []
+ libraries = []
+ runtime_library_dirs = []
+@@ -188,7 +188,6 @@
+     maintainer_email="kjetilja at gmail.com, markus at oberhumer.com",
+     url="http://pycurl.sourceforge.net/",
+     license="LGPL/MIT",
+-    data_files=get_data_files(),
+     ext_modules=[ext],
+     long_description="""
+ This module provides Python bindings for the cURL library.""",

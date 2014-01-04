@@ -17,7 +17,7 @@ from distutils.util import split_quoted
 from distutils.version import LooseVersion
 
 include_dirs = []
-define_macros = []
+define_macros = [ ('HAVE_CURL_GNUTLS', 1) ]
 library_dirs = []
 libraries = []
 runtime_library_dirs = []

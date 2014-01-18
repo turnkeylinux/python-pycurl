@@ -25,7 +25,7 @@ class ConfigurationError(exception_base):
     pass
 
 include_dirs = []
-define_macros = [("PYCURL_VERSION", '"%s"' % VERSION)]
+define_macros = [("PYCURL_VERSION", '"%s"' % VERSION), ('HAVE_CURL_GNUTLS', 1) ]
 library_dirs = []
 libraries = []
 runtime_library_dirs = []

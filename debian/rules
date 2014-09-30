@@ -1,0 +1,77 @@
+#! /usr/bin/make -f
+
+# Uncomment this to turn on verbose mode.
+#export DH_VERBOSE=1
+
+# This has to be exported to make some magic below work.
+export DH_OPTIONS
+
+PY2VERS := $(shell pyversions -vs)
+PY3VERS := $(shell py3versions -vs)
+CURLVERS := $(strip $(shell /usr/bin/curl-config --version | awk '{print $$2}'))
+
+unexport LDFLAGS
+export FFLAGS="-fPIC"
+
+%:
+	dh $@ --with python2,python3,sphinxdoc
+
+override_dh_auto_build:
+	make gen
+	set -e ;\
+	for py in $(PY2VERS) $(PY3VERS) ; do \
+		python$$py setup.py build ; \
+		python$$py-dbg setup.py build ; \
+	done
+	mkdir -p www/htdocs/doc
+	$(MAKE) docs
+
+override_dh_auto_test:
+ifeq ($(filter nocheck,$(DEB_BUILD_OPTIONS)),)
+	-set -e ;\
+	for py in $(PY2VERS) $(PY3VERS) ; do \
+		PYTHON=$$py make test; \
+	done
+endif
+
+override_dh_auto_install:
+	for py in $(PY2VERS); do \
+		python$$py setup.py install --root=$(CURDIR)/debian/python-pycurl --install-layout=deb; \
+		python$$py-dbg setup.py install --root=$(CURDIR)/debian/python-pycurl-dbg --install-layout=deb; \
+	done
+	for py in $(PY3VERS); do \
+		python$$py setup.py install --root=$(CURDIR)/debian/python3-pycurl --install-layout=deb; \
+		python$$py-dbg setup.py install --root=$(CURDIR)/debian/python3-pycurl-dbg --install-layout=deb; \
+	done
+
+	# Remove documentation as installed by setup.py
+	rm -rf $(CURDIR)/debian/python*-pycurl*/usr/share/doc/pycurl
+
+	rm -rf $(CURDIR)/debian/python*-pycurl-dbg/usr/lib/python*/*-packages/curl
+	rm -f $(CURDIR)/debian/python*-pycurl-dbg/usr/lib/python*/*-packages/pycurl-*.egg-info
+
+override_dh_installdocs:
+	mkdir -p debian/python-pycurl-doc/usr/share/doc/python-pycurl-doc/html
+	cp -a build/doc/*.html $(CURDIR)/debian/python-pycurl-doc/usr/share/doc/python-pycurl-doc/html
+	dh_installdocs -ppython-pycurl -ppython-pycurl-dbg --link-doc=python-pycurl
+	dh_installdocs -ppython3-pycurl -ppython3-pycurl-dbg --link-doc=python3-pycurl
+	dh_installdocs -ppython-pycurl-doc
+
+override_dh_installexamples:
+	dh_installexamples -ppython-pycurl-doc examples/*
+
+override_dh_installchangelogs:
+	dh_installchangelogs ChangeLog
+
+override_dh_strip:
+ifeq (,$(filter nostrip,$(DEB_BUILD_OPTIONS)))
+	dh_strip -ppython-pycurl --dbg-package=python-pycurl-dbg
+	dh_strip -ppython3-pycurl --dbg-package=python3-pycurl-dbg
+endif
+
+override_dh_compress:
+	dh_compress -X.py
+
+override_dh_shlibdeps:
+	dh_shlibdeps -a
+	sed -i '/shlibs:Depends/s,\(libcurl[0-9]*-gnutls (>= \)[^)]*\().*\),\1$(CURLVERS)\2,' debian/python-pycurl*.substvars

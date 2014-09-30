@@ -54,7 +54,7 @@ def scan_argv(s, default=None):
 class ExtensionConfiguration(object):
     def __init__(self):
         self.include_dirs = []
-        self.define_macros = [("PYCURL_VERSION", '"%s"' % VERSION)]
+        self.define_macros = [("PYCURL_VERSION", '"%s"' % VERSION), ('HAVE_CURL_GNUTLS', 1) ]
         self.library_dirs = []
         self.libraries = []
         self.runtime_library_dirs = []

@@ -1,3 +1,19 @@
+pycurl (7.19.0-5) unstable; urgency=low
+
+  * debian/rules
+    - install debug files where gdb will look for them
+  * debian/pyversions
+    - removed, not needed
+  * debian/control
+    - bump Standards-Version to 3.9.2 (no changes needed)
+    - removed Conflicts/Replaces/Provides, not needed
+    - added libssh2-1-dev to build-depends; thanks to Jakub Wilk for the report;
+      Closes: #658952
+  * Convert to 3.0 (quilt) source format
+  * Convert to Debhelper 7
+
+ -- Sandro Tosi <morph@debian.org>  Sat, 11 Feb 2012 17:22:11 +0100
+
 pycurl (7.19.0-4) unstable; urgency=low
 
   * Add the now!? missing librtmp-dev build-dependency.

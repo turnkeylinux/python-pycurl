@@ -1,4 +1,4 @@
-/* $Id: pycurl.c,v 1.133 2007/04/23 17:24:21 kjetilja Exp $ */
+/* $Id: pycurl.c,v 1.136 2007/07/11 17:31:07 kjetilja Exp $ */
 
 /* PycURL -- cURL Python module
  *
@@ -22,6 +22,7 @@
  *  Bastian Kleineidam
  *  Mark Eichin
  *  Aaron Hill <visine19 at hotmail.com>
+ *  Daniel Peña Arteaga <dpena ph.tum.de>
  *
  * See file COPYING for license information.
  */
@@ -50,8 +51,8 @@
 #if !defined(PY_VERSION_HEX) || (PY_VERSION_HEX < 0x02020000)
 #  error "Need Python version 2.2 or greater to compile pycurl."
 #endif
-#if !defined(LIBCURL_VERSION_NUM) || (LIBCURL_VERSION_NUM < 0x071002)
-#  error "Need libcurl version 7.16.2 or greater to compile pycurl."
+#if !defined(LIBCURL_VERSION_NUM) || (LIBCURL_VERSION_NUM < 0x071004)
+#  error "Need libcurl version 7.16.4 or greater to compile pycurl."
 #endif
 
 /* Python < 2.5 compat for Py_ssize_t */
@@ -1897,7 +1898,8 @@ do_curl_setopt(CurlObject *self, PyObject *args)
     }
 
     /* Handle the case of function objects for callbacks */
-    if (PyFunction_Check(obj) || PyCFunction_Check(obj) || PyMethod_Check(obj)) {
+    if (PyFunction_Check(obj) || PyCFunction_Check(obj) ||
+        PyCallable_Check(obj) || PyMethod_Check(obj)) {
         /* We use function types here to make sure that our callback
          * definitions exactly match the <curl/curl.h> interface.
          */
@@ -2347,7 +2349,8 @@ do_multi_setopt(CurlMultiObject *self, PyObject *args)
         Py_INCREF(Py_None);
         return Py_None;
     }
-    if (PyFunction_Check(obj) || PyCFunction_Check(obj) || PyMethod_Check(obj)) {
+    if (PyFunction_Check(obj) || PyCFunction_Check(obj) ||
+        PyCallable_Check(obj) || PyMethod_Check(obj)) {
         /* We use function types here to make sure that our callback
          * definitions exactly match the <curl/multi.h> interface.
          */
@@ -3564,6 +3567,8 @@ initpycurl(void)
     insint_c(d, "CONNECTTIMEOUT_MS", CURLOPT_CONNECTTIMEOUT_MS);
     insint_c(d, "HTTP_TRANSFER_DECODING", CURLOPT_HTTP_TRANSFER_DECODING);
     insint_c(d, "HTTP_CONTENT_DECODING", CURLOPT_HTTP_CONTENT_DECODING);
+    insint_c(d, "NEW_FILE_PERMS", CURLOPT_NEW_FILE_PERMS);
+    insint_c(d, "NEW_DIRECTORY_PERMS", CURLOPT_NEW_DIRECTORY_PERMS);
 
     insint_c(d, "M_TIMERFUNCTION", CURLMOPT_TIMERFUNCTION);
     insint_c(d, "M_SOCKETFUNCTION", CURLMOPT_SOCKETFUNCTION);

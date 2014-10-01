@@ -1,15 +1,16 @@
 #! /usr/bin/env python
 # -*- coding: iso-8859-1 -*-
 # vi:ts=4:et
-# $Id: retriever-multi.py,v 1.23 2005/01/08 19:15:42 mfx Exp $
+# $Id: retriever-multi.py,v 1.25 2005/02/13 08:28:01 mfx Exp $
 
 #
 # Usage: python retriever-multi.py <file with URLs to fetch> [<# of
 #          concurrent connections>]
 #
 
-import string, sys
+import sys
 import pycurl
+
 # We should ignore SIGPIPE when using pycurl.NOSIGNAL - see
 # the libcurl tutorial for more info.
 try:
@@ -23,7 +24,10 @@ except ImportError:
 # Get args
 num_conn = 10
 try:
-    urls = open(sys.argv[1]).readlines()
+    if sys.argv[1] == "-":
+        urls = sys.stdin.readlines()
+    else:
+        urls = open(sys.argv[1]).readlines()
     if len(sys.argv) >= 3:
         num_conn = int(sys.argv[2])
 except:
@@ -33,15 +37,12 @@ except:
 
 # Make a queue with (url, filename) tuples
 queue = []
-fileno = 1
 for url in urls:
-    url = string.strip(url)
+    url = url.strip()
     if not url or url[0] == "#":
         continue
-    filename = "doc_%d" % (fileno)
+    filename = "doc_%03d.dat" % (len(queue) + 1)
     queue.append((url, filename))
-    fileno = fileno + 1
-del fileno, url, urls
 
 
 # Check args
@@ -53,13 +54,12 @@ print "PycURL %s (compiled against 0x%x)" % (pycurl.version, pycurl.COMPILE_LIBC
 print "----- Getting", num_urls, "URLs using", num_conn, "connections -----"
 
 
-# Preallocate a list of curl objects
+# Pre-allocate a list of curl objects
 m = pycurl.CurlMulti()
 m.handles = []
 for i in range(num_conn):
     c = pycurl.Curl()
     c.fp = None
-    c.setopt(pycurl.HTTPHEADER, ["User-Agent: PycURL"])
     c.setopt(pycurl.FOLLOWLOCATION, 1)
     c.setopt(pycurl.MAXREDIRS, 5)
     c.setopt(pycurl.CONNECTTIMEOUT, 30)
@@ -119,7 +119,4 @@ for c in m.handles:
         c.fp = None
     c.close()
 m.close()
-
-# Delete objects (just for testing the refcounts)
-del c, m, freelist, queue
 

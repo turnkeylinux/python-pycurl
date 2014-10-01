@@ -1,12 +1,10 @@
-# $Id: TODO,v 1.92 2005/02/08 11:46:05 kjetilja Exp $
+# $Id: TODO,v 1.95 2005/03/04 14:43:04 kjetilja Exp $
 # vi:ts=4:et
 
 If you want to hack on pycurl, here's our list of unresolved issues:
 
 
 NEW FEATURES/IMPROVEMENTS:
-
-    * Support more of the CURLFORM_* API in HTTPPOST?
 
     * Add docs to the high-level interface.
 
@@ -18,8 +16,6 @@ NEW FEATURES/IMPROVEMENTS:
       careful since curl_easy_reset() e.g. modifies callbacks and other
       pointers which could leave pycurl and libcurl out of sync.
 
-    * Use METH_O and METH_NOARGS where appropriate instead of METH_VARAGS.
-
 
 DEFICIENICES:
 
@@ -29,4 +25,3 @@ DEFICIENICES:
       There _are_ quite a number of internal error checks, but tracking and
       catching all possible (deliberate) misuses is not a goal (and probably
       impossible anyway, due to the complexity of libcurl).
-

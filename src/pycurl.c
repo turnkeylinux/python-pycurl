@@ -1,4 +1,4 @@
-/* $Id: pycurl.c,v 1.86 2005/03/04 08:39:30 kjetilja Exp $ */
+/* $Id: pycurl.c,v 1.89 2005/03/30 17:35:55 mfx Exp $ */
 
 /* PycURL -- cURL Python module
  *
@@ -48,8 +48,8 @@
 #if !defined(PY_VERSION_HEX) || (PY_VERSION_HEX < 0x02020000)
 #  error "Need Python version 2.2 or greater to compile pycurl."
 #endif
-#if !defined(LIBCURL_VERSION_NUM) || (LIBCURL_VERSION_NUM < 0x070d01)
-#  error "Need libcurl version 7.13.1 or greater to compile pycurl."
+#if !defined(LIBCURL_VERSION_NUM) || (LIBCURL_VERSION_NUM < 0x070d02)
+#  error "Need libcurl version 7.13.2 or greater to compile pycurl."
 #endif
 
 #undef UNUSED
@@ -178,14 +178,16 @@ static PyObject *convert_slist(struct curl_slist *slist, int free_flags)
     for ( ; slist != NULL; slist = slist->next) {
         PyObject *v = NULL;
 
-        if (slist->data != NULL) {
+        if (slist->data == NULL) {
+            v = Py_None; Py_INCREF(v);
+        } else {
             v = PyString_FromString(slist->data);
-            if (v == NULL || PyList_Append(ret, v) != 0) {
-                Py_XDECREF(v);
-                goto error;
-            }
-            Py_DECREF(v);
         }
+        if (v == NULL || PyList_Append(ret, v) != 0) {
+            Py_XDECREF(v);
+            goto error;
+        }
+        Py_DECREF(v);
     }
 
     if ((free_flags & 1) && slist)
@@ -915,7 +917,7 @@ ioctl_callback(CURL *curlobj, int cmd, void *stream)
         goto silent_error;
 
     /* run callback */
-    arglist = Py_BuildValue("(i)", (int)cmd);
+    arglist = Py_BuildValue("(i)", cmd);
     if (arglist == NULL)
         goto verbose_error;
     result = PyEval_CallObject(self->ioctl_cb, arglist);
@@ -2035,20 +2037,17 @@ do_multi_select(CurlMultiObject *self, PyObject *args)
     struct timeval tv, *tvp;
     CURLMcode res;
 
-    if (!PyArg_ParseTuple(args, "|d:select", &timeout)) {
+    if (!PyArg_ParseTuple(args, "d:select", &timeout)) {
         return NULL;
     }
     if (check_multi_state(self, 1 | 2, "select") != 0) {
         return NULL;
     }
 
-   if (timeout == -1.0) {
-        /* no timeout given - wait forever */
-        tvp = NULL;
-   } else if (timeout < 0 || timeout >= 365 * 24 * 60 * 60) {
+    if (timeout < 0 || timeout >= 365 * 24 * 60 * 60) {
         PyErr_SetString(PyExc_OverflowError, "invalid timeout period");
         return NULL;
-   } else {
+    } else {
         long seconds = (long)timeout;
         timeout = timeout - (double)seconds;
         assert(timeout >= 0.0); assert(timeout < 1.0);
@@ -2303,7 +2302,6 @@ do_global_cleanup(PyObject *dummy)
 }
 
 
-
 static PyObject *vi_str(const char *s)
 {
     if (s == NULL) {
@@ -2335,8 +2333,8 @@ do_version_info(PyObject *dummy, PyObject *args)
         return NULL;
     }
 
-    /* Note: actually libcurl in lib/version.c does ignore
-     * the "stamp" parm, and so do we */
+    /* INFO: actually libcurl in lib/version.c does ignore
+     * the "stamp" parameter, and so do we. */
 
     for (i = 0; vi->protocols[i] != NULL; )
         i++;

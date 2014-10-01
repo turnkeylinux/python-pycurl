@@ -3,7 +3,7 @@ Section: python
 Priority: extra
 Maintainer: Domenico Andreoli <cavok@debian.org>
 Uploaders: Matthias Klose <doko@debian.org>
-Build-Depends: debhelper (>> 3.0.0), python2.2-dev, python2.3-dev, python2.4-dev, libcurl3-dev (>= 7.13.1)
+Build-Depends: debhelper (>> 3.0.0), python2.2-dev, python2.3-dev, python2.4-dev, libcurl3-dev (>= 7.13.2)
 Standards-Version: 3.6.1
 
 Package: python2.2-pycurl

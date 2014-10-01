@@ -1,0 +1,31 @@
+From 5c1b5560b1d70a2013cb165bffddd80d3bc59f7b Mon Sep 17 00:00:00 2001
+From: Sandro Tosi <morph@debian.org>
+Date: Fri, 15 May 2009 22:33:30 +0200
+Subject: =?UTF-8?q?Adjust=20setup.py=20file=20for=20Debian=20architecture?=
+ =?UTF-8?q?=0APatch-Name:=2010=5Fsetup.py?=
+
+---
+ setup.py | 3 +--
+ 1 file changed, 1 insertion(+), 2 deletions(-)
+
+diff --git a/setup.py b/setup.py
+index 0ffd9d2..d2e5f8e 100644
+--- a/setup.py
++++ b/setup.py
+@@ -17,7 +17,7 @@ from distutils.util import split_quoted
+ from distutils.version import LooseVersion
+ 
+ include_dirs = []
+-define_macros = []
++define_macros = [ ('HAVE_CURL_GNUTLS', 1) ]
+ library_dirs = []
+ libraries = []
+ runtime_library_dirs = []
+@@ -188,7 +188,6 @@ setup_args = get_kw(
+     maintainer_email="kjetilja at gmail.com, markus at oberhumer.com",
+     url="http://pycurl.sourceforge.net/",
+     license="LGPL/MIT",
+-    data_files=get_data_files(),
+     ext_modules=[ext],
+     long_description="""
+ This module provides Python bindings for the cURL library.""",

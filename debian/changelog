@@ -1,3 +1,13 @@
+pycurl (7.19.3.1-1.1) experimental; urgency=medium
+
+  * Non-maintainer upload.
+  * Upload to experimental, to test successful build/testsuite run.
+  * Drop build-depency on librtmp-dev, as it is not in "curl-config
+    --static-libs", otoh add one for libgnutls28-dev, since pycurl.c 
+    #includes <gnutls/gnutls.h>. Closes: #751059
+
+ -- Andreas Metzler <ametzler@debian.org>  Fri, 18 Jul 2014 07:46:19 +0200
+
 pycurl (7.19.3.1-1) unstable; urgency=medium
 
   [ Bernd Zeimetz ]

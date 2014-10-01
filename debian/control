@@ -3,7 +3,7 @@ Section: python
 Priority: optional
 Maintainer: Sandro Tosi <morph@debian.org>
 Uploaders: Debian Python Modules Team <python-modules-team@lists.alioth.debian.org>
-Build-Depends: debhelper (>= 7.0.50~), python-all-dev (>= 2.6.6-3~), python-all-dbg, python3-all-dev, python3-all-dbg, dh-python, libcurl4-gnutls-dev (>= 7.19.0), librtmp-dev, libssh2-1-dev, python-nose, python-bottle, python-cherrypy3, python-docutils
+Build-Depends: debhelper (>= 7.0.50~), python-all-dev (>= 2.6.6-3~), python-all-dbg, python3-all-dev, python3-all-dbg, dh-python, libcurl4-gnutls-dev (>= 7.19.0), libssh2-1-dev, python-nose, python-bottle, python-cherrypy3, python-docutils, libgnutls28-dev
 Standards-Version: 3.9.5
 X-Python-Version: all
 X-Python3-Version: >= 3.3

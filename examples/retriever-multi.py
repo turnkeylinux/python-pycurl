@@ -1,7 +1,7 @@
 #! /usr/bin/env python
 # -*- coding: iso-8859-1 -*-
 # vi:ts=4:et
-# $Id: retriever-multi.py,v 1.27 2005/03/15 13:10:30 kjetilja Exp $
+# $Id: retriever-multi.py,v 1.29 2005/07/28 11:04:13 mfx Exp $
 
 #
 # Usage: python retriever-multi.py <file with URLs to fetch> [<# of

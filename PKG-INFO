@@ -1,10 +1,10 @@
 Metadata-Version: 1.0
 Name: pycurl
-Version: 7.14.0
+Version: 7.14.1
 Summary: PycURL -- cURL library module for Python
 Home-page: http://pycurl.sourceforge.net/
 Author: Kjetil Jacobsen, Markus F.X.J. Oberhumer
-Author-email: kjetilja@cs.uit.no, markus@oberhumer.com
+Author-email: kjetilja@gmail.com, markus@oberhumer.com
 License: GNU Lesser General Public License (LGPL)
 Description: 
         This module provides Python bindings for the cURL library.

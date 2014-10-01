@@ -1,3 +1,10 @@
+pycurl (7.14.1-1) experimental; urgency=low
+
+  * New upstream release.
+  * Switched to libcurl3-gnutls-dev build dependency.
+
+ -- Domenico Andreoli <cavok@debian.org>  Sun, 18 Sep 2005 00:48:54 +0200
+
 pycurl (7.14.0-2) unstable; urgency=low
 
   * Matthias Klose:

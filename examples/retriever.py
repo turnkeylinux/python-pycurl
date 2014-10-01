@@ -1,7 +1,7 @@
 #! /usr/bin/env python
 # -*- coding: iso-8859-1 -*-
 # vi:ts=4:et
-# $Id: retriever.py,v 1.17 2005/02/13 08:28:01 mfx Exp $
+# $Id: retriever.py,v 1.19 2005/07/28 11:04:13 mfx Exp $
 
 #
 # Usage: python retriever.py <file with URLs to fetch> [<# of

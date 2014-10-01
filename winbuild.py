@@ -1,9 +1,17 @@
+# Bootstrap python binary:
+# http://www.python.org/ftp/python/3.3.4/python-3.3.4.msi
+# http://www.python.org/ftp/python/3.3.4/python-3.3.4.amd64.msi
+# msvc9/vs2008 express:
+# http://go.microsoft.com/?linkid=7729279
+# msvc10/vs2010 express:
+# http://go.microsoft.com/?linkid=9709949
+
 # work directory for downloading dependencies and building everything
 root = 'c:/dev/build-pycurl'
 # where msysgit is installed
 git_root = 'c:/program files/git'
 # which versions of python to build against
-python_versions = ['2.6', '2.7', '3.2', '3.3']
+python_versions = ['2.6.6', '2.7.6', '3.2.5', '3.3.5', '3.4.1']
 # where pythons are installed
 python_path_template = 'c:/python%s/python'
 vc_paths = {
@@ -13,13 +21,13 @@ vc_paths = {
     'vc10': 'c:/program files/microsoft visual studio 10.0',
 }
 # whether to link libcurl against zlib
-use_zlib = False
+use_zlib = True
 # which version of zlib to use, will be downloaded from internet
 zlib_version = '1.2.8'
 # which version of libcurl to use, will be downloaded from the internet
-libcurl_version = '7.35.0'
+libcurl_version = '7.37.0'
 # pycurl version to build, we should know this ourselves
-pycurl_version = '7.19.3.1'
+pycurl_version = '7.19.5'
 
 import os, os.path, sys, subprocess, shutil, contextlib
 
@@ -39,6 +47,7 @@ python_vc_versions = {
     '2.7': 'vc9',
     '3.2': 'vc9',
     '3.3': 'vc10',
+    '3.4': 'vc10',
 }
 vc_versions = vc_paths.keys()
 
@@ -71,14 +80,14 @@ def in_dir(dir):
         os.chdir(old_cwd)
 
 @contextlib.contextmanager
-def step(step_fn, *args):
+def step(step_fn, args, target_dir):
     step = step_fn.__name__
     if args:
         step +=  '-' + '-'.join(args)
     if not os.path.exists(state_path):
         os.makedirs(state_path)
     state_file_path = os.path.join(state_path, step)
-    if not os.path.exists(state_file_path):
+    if not os.path.exists(state_file_path) or not os.path.exists(target_dir):
         step_fn(*args)
     with open(state_file_path, 'w') as f:
         pass
@@ -95,7 +104,7 @@ def rename_for_vc(basename, vc_version):
     os.rename(basename, suffixed_dir)
     return suffixed_dir
 
-def work():
+def build():
     os.environ['PATH'] += ";%s" % git_bin_path
     if not os.path.exists(archives_path):
         os.makedirs(archives_path)
@@ -123,12 +132,12 @@ def work():
                         extra_options = ' WITH_ZLIB=dll'
                     else:
                         extra_options = ''
-                    f.write("nmake /f Makefile.vc mode=dll ENABLE_IDN=no\n")
+                    f.write("nmake /f Makefile.vc mode=dll ENABLE_IDN=no%s\n" % extra_options)
                 subprocess.check_call(['doit.bat'])
         for vc_version in vc_versions:
             if use_zlib:
-                step(build_zlib, vc_version)
-            step(build_curl, vc_version)
+                step(build_zlib, (vc_version,), 'zlib-%s-%s' % (zlib_version, vc_version))
+            step(build_curl, (vc_version,), 'curl-%s-%s' % (libcurl_version, vc_version))
         
         def prepare_pycurl():
             #fetch('http://pycurl.sourceforge.net/download/pycurl-%s.tar.gz' % pycurl_version)
@@ -154,14 +163,35 @@ def work():
                 shutil.copy(os.path.join(curl_dir, 'bin', 'libcurl.dll'), 'build/lib.win32-%s' % python_version)
                 with open('doit.bat', 'w') as f:
                     f.write("call \"%s\"\n" % vc_paths[vc_version]['vsvars'])
+                    f.write("%s setup.py docstrings\n" % (python_path,))
                     f.write("%s setup.py %s --curl-dir=%s --use-libcurl-dll\n" % (python_path, target, curl_dir))
                 subprocess.check_call(['doit.bat'])
                 if target == 'bdist':
                     os.rename('dist/pycurl-%s.win32.zip' % pycurl_version, 'dist/pycurl-%s.win32-py%s.zip' % (pycurl_version, python_version))
         
         prepare_pycurl()
-        for python_version in python_versions:
+        python_releases = ['.'.join(version.split('.')[:2]) for version in python_versions]
+        for python_version in python_releases:
             for target in ['bdist', 'bdist_wininst', 'bdist_msi']:
                 build_pycurl(python_version, target)
 
-work()
+def download_pythons():
+    try:
+        from urllib.request import urlopen
+    except NameError:
+        from urllib import urlopen
+    
+    for version in python_versions:
+        if os.path.exists(os.path.join(archives_path, 'python-%s.msi')):
+            continue
+        print('Downloading %s' % version)
+        url = 'http://python.org/ftp/python/%s/python-%s.msi' % (version, version)
+        io = urlopen(url)
+        data = io.read()
+        with open(os.path.join(archives_path, 'python-%s.msi' % version), 'wb') as f:
+            f.write(data)
+
+if len(sys.argv) > 1 and sys.argv[1] == 'download':
+    download_pythons()
+else:
+    build()

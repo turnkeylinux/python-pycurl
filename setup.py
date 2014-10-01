@@ -6,7 +6,7 @@
 
 PACKAGE = "pycurl"
 PY_PACKAGE = "curl"
-VERSION = "7.19.3.1"
+VERSION = "7.19.5"
 
 import glob, os, re, sys, string, subprocess
 import distutils
@@ -212,7 +212,11 @@ class ExtensionConfiguration(object):
                 if not ssl_lib_detected and arg[2:] == 'ssl':
                     self.define_macros.append(('HAVE_CURL_OPENSSL', 1))
                     ssl_lib_detected = True
-                    self.libraries.append('ssl')
+                    # the actual library that defines CRYPTO_num_locks etc.
+                    # is crypto, and on cygwin linking against ssl does not
+                    # link against crypto as of May 2014.
+                    # http://stackoverflow.com/questions/23687488/cant-get-pycurl-to-install-on-cygwin-missing-openssl-symbols-crypto-num-locks
+                    self.libraries.append('crypto')
                 if not ssl_lib_detected and arg[2:] == 'gnutls':
                     self.define_macros.append(('HAVE_CURL_GNUTLS', 1))
                     ssl_lib_detected = True
@@ -364,13 +368,32 @@ def strip_pycurl_options():
 
 ###############################################################################
 
-def get_extension():
+def get_extension(split_extension_source=False):
+    if split_extension_source:
+        sources = [
+            os.path.join("src", "docstrings.c"),
+            os.path.join("src", "easy.c"),
+            os.path.join("src", "module.c"),
+            os.path.join("src", "multi.c"),
+            os.path.join("src", "oscompat.c"),
+            os.path.join("src", "pythoncompat.c"),
+            os.path.join("src", "share.c"),
+            os.path.join("src", "stringcompat.c"),
+            os.path.join("src", "threadsupport.c"),
+        ]
+        depends = [
+            os.path.join("src", "pycurl.h"),
+        ]
+    else:
+        sources = [
+            os.path.join("src", "allpycurl.c"),
+        ]
+        depends = []
     ext_config = ExtensionConfiguration()
     ext = Extension(
         name=PACKAGE,
-        sources=[
-            os.path.join("src", "pycurl.c"),
-        ],
+        sources=sources,
+        depends=depends,
         include_dirs=ext_config.include_dirs,
         define_macros=ext_config.define_macros,
         library_dirs=ext_config.library_dirs,
@@ -397,18 +420,15 @@ def get_data_files():
         datadir = os.path.join("share", "doc", PACKAGE)
     #
     files = ["AUTHORS", "ChangeLog", "COPYING-LGPL", "COPYING-MIT",
-        "INSTALL.rst", "README.rst"]
+        "INSTALL.rst", "README.rst", "RELEASE-NOTES.rst"]
     if files:
         data_files.append((os.path.join(datadir), files))
-    files = glob.glob(os.path.join("doc", "*.rst"))
-    if files:
-        data_files.append((os.path.join(datadir, "rst"), files))
     files = glob.glob(os.path.join("examples", "*.py"))
     if files:
         data_files.append((os.path.join(datadir, "examples"), files))
-    files = glob.glob(os.path.join("tests", "*.py"))
+    files = glob.glob(os.path.join("examples", "quickstart", "*.py"))
     if files:
-        data_files.append((os.path.join(datadir, "tests"), files))
+        data_files.append((os.path.join(datadir, "examples", "quickstart"), files))
     #
     assert data_files
     for install_dir, files in data_files:
@@ -481,6 +501,49 @@ def check_authors():
         f.write("\n\n".join(paras))
     finally:
         f.close()
+
+
+def convert_docstrings():
+    docstrings = []
+    for entry in sorted(os.listdir('doc/docstrings')):
+        if not entry.endswith('.rst'):
+            continue
+        
+        name = entry.replace('.rst', '')
+        f = open('doc/docstrings/%s' % entry)
+        try:
+            text = f.read().strip()
+        finally:
+            f.close()
+        docstrings.append((name, text))
+    f = open('src/docstrings.c', 'w')
+    try:
+        f.write("/* Generated file - do not edit. */\n")
+        # space to avoid having /* inside a C comment
+        f.write("/* See doc/docstrings/ *.rst. */\n\n")
+        f.write("#include \"pycurl.h\"\n\n")
+        for name, text in docstrings:
+            text = text.replace("\"", "\\\"").replace("\n", "\\n\\\n")
+            f.write("PYCURL_INTERNAL const char %s_doc[] = \"%s\";\n\n" % (name, text))
+    finally:
+        f.close()
+    f = open('src/docstrings.h', 'w')
+    try:
+        f.write("/* Generated file - do not edit. */\n")
+        # space to avoid having /* inside a C comment
+        f.write("/* See doc/docstrings/ *.rst. */\n\n")
+        for name, text in docstrings:
+            f.write("extern const char %s_doc[];\n" % name)
+    finally:
+        f.close()
+
+
+def gen_docstrings_sources():
+    sources = 'DOCSTRINGS_SOURCES ='
+    for entry in sorted(os.listdir('doc/docstrings')):
+        if entry.endswith('.rst'):
+            sources += " \\\n\tdoc/docstrings/%s" % entry
+    print(sources)
 
 ###############################################################################
 
@@ -556,11 +619,19 @@ if __name__ == "__main__":
         setup(**setup_args)
     elif len(sys.argv) > 1 and sys.argv[1] == 'manifest':
         check_manifest()
+    elif len(sys.argv) > 1 and sys.argv[1] == 'docstrings':
+        convert_docstrings()
     elif len(sys.argv) > 1 and sys.argv[1] == 'authors':
         check_authors()
+    elif len(sys.argv) > 1 and sys.argv[1] == 'docstrings-sources':
+        gen_docstrings_sources()
     else:
         setup_args['data_files'] = get_data_files()
-        ext = get_extension()
+        if 'PYCURL_RELEASE' in os.environ and os.environ['PYCURL_RELEASE'].lower() in ['1', 'yes', 'true']:
+            split_extension_source = False
+        else:
+            split_extension_source = True
+        ext = get_extension(split_extension_source=split_extension_source)
         setup_args['ext_modules'] = [ext]
         
         for o in ext.extra_objects:

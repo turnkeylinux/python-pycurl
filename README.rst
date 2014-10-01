@@ -40,13 +40,27 @@ Overview
 Requirements
 ------------
 
-- Python 2.4 through 2.7 or 3.1 through 3.3.
+- Python 2.4 through 2.7 or 3.1 through 3.4.
 - libcurl 7.19.0 or better.
 
 Installation
 ------------
 
-Please see README.rst for installation instructions.
+Please see INSTALL.rst for installation instructions. If installing from
+a Git checkout, please follow instruction in the "Git Checkout" section
+in INSTALL.rst.
+
+Documentation
+-------------
+
+Documentation for the most recent PycURL release is available on
+`PycURL website <http://pycurl.sourceforge.net/doc/>`_.
+
+To build documentation from source, run ``make docs``.
+Building documentation requires `Sphinx <http://sphinx-doc.org/>`_ to
+be installed, as well as pycurl extension module built as docstrings are
+extracted from it. Built documentation is stored in ``build/doc``
+subdirectory.
 
 Support
 -------
@@ -54,12 +68,16 @@ Support
 For support questions, please use `curl-and-python mailing list`_.
 `Mailing list archives`_ are available for your perusal as well.
 
+Although not an official support venue, `Stack Overflow`_ has been quite
+popular with PycURL users as well.
+
 Bugs can be reported `via GitHub`_. Please only use GitHub issues when you are
 certain you have found a bug in PycURL. If you do not have a patch to fix
 the bug, or at least a specific code fragment in PycURL that you believe is
-the cause, you should instead post you inquiry to the mailing list.
+the cause, you should instead post your inquiry to the mailing list.
 
 .. _curl-and-python mailing list: http://cool.haxx.se/mailman/listinfo/curl-and-python
+.. _Stack Overflow: http://stackoverflow.com/questions/tagged/pycurl
 .. _Mailing list archives: http://curl.haxx.se/mail/list.cgi?list=curl-and-python
 .. _via GitHub: https://github.com/pycurl/pycurl/issues
 
@@ -70,7 +88,7 @@ PycURL comes with an automated test suite. To run the tests, execute::
 
     make test
 
-The suite depends on packages `nose`_, `bottle`_ and `cherrypy`_.
+The suite depends on packages `nose`_ and `bottle`_, as well as `vsftpd`_.
 
 Some tests use vsftpd configured to accept anonymous uploads. These tests
 are not run by default. As configured, vsftpd will allow reads and writes to
@@ -83,11 +101,11 @@ vsftpd tests you must explicitly set PYCURL_VSFTPD_PATH variable like so::
     # specify full path to vsftpd
     export PYCURL_VSFTPD_PATH=/usr/local/libexec/vsftpd
 
-These instructions work for Python 2.5 through 2.7 and 3.1 through 3.3.
+These instructions work for Python 2.5 through 2.7 and 3.1 through 3.4.
 
 .. _nose: https://nose.readthedocs.org/
 .. _bottle: http://bottlepy.org/
-.. _cherrypy: http://www.cherrypy.org/
+.. _vsftpd: http://vsftpd.beasts.org/
 
 Test Matrix
 -----------
@@ -101,12 +119,12 @@ configurations. It supports:
 - Testing against locally compiled libcurl with arbitrary options.
 
 To use the test matrix, first you need to start the test server from
-Python 2.5+ by running:::
+Python 2.5+ by running::
 
     python -m tests.appmanager
 
 Then in a different shell, and preferably in a separate user account,
-run the test matrix:::
+run the test matrix::
 
     # run ftp tests, etc.
     export PYCURL_VSFTPD_PATH=vsftpd

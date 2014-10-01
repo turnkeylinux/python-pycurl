@@ -1,3 +1,9 @@
+pycurl (7.19.0-4) unstable; urgency=low
+
+  * Add the now!? missing librtmp-dev build-dependency.
+
+ -- Bernd Zeimetz <bzed@debian.org>  Sat, 16 Apr 2011 19:37:02 +0200
+
 pycurl (7.19.0-3) unstable; urgency=low
 
   * Fix FTBFS on kfreebsd, thanks to KiBi (Closes: #540980).

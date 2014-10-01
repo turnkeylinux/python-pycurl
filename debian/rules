@@ -6,18 +6,19 @@
 # This has to be exported to make some magic below work.
 export DH_OPTIONS
 
-PYVERS := $(shell pyversions -vs)
+PY2VERS := $(shell pyversions -vs)
+PY3VERS := $(shell py3versions -vs)
 CURLVERS := $(strip $(shell /usr/bin/curl-config --version | awk '{print $$2}'))
 
 unexport LDFLAGS
 export FFLAGS="-fPIC"
 
 %:
-	dh $@ --with python2
+	dh $@ --with python2,python3
 
 override_dh_auto_build:
 	set -e ;\
-	for py in $(PYVERS) ; do \
+	for py in $(PY2VERS) $(PY3VERS) ; do \
 		python$$py setup.py build ; \
 		python$$py-dbg setup.py build ; \
 	done
@@ -27,43 +28,30 @@ override_dh_auto_build:
 override_dh_auto_test:
 ifeq ($(filter nocheck,$(DEB_BUILD_OPTIONS)),)
 	-set -e ;\
-	for py in $(PYVERS) ; do \
+	for py in $(PY2VERS) $(PY3VERS) ; do \
 		PYTHONPATH=`ls -d $(CURDIR)/build/lib.*-*-$$py` nosetests --verbose ; \
 	done
 endif
 
-#clean:
-#	dh_testdir
-#	dh_testroot
-#	rm -f build-*
-#
-#	for py in $(PYVERS); do \
-#	    python$$py setup.py clean; \
-#	    python$$py-dbg setup.py clean; \
-#	done
-#
-#	rm -rf build
-#	-find -name '*.py[co]' | xargs rm -f
-#	dh_clean
-
 override_dh_auto_install:
-	for py in $(PYVERS); do \
+	for py in $(PY2VERS); do \
   	    python$$py setup.py install --root=$(CURDIR)/debian/python-pycurl --install-layout=deb; \
  	    python$$py-dbg setup.py install --root=$(CURDIR)/debian/python-pycurl-dbg --install-layout=deb; \
 	done
+	for py in $(PY3VERS); do \
+  	    python$$py setup.py install --root=$(CURDIR)/debian/python3-pycurl --install-layout=deb; \
+ 	    python$$py-dbg setup.py install --root=$(CURDIR)/debian/python3-pycurl-dbg --install-layout=deb; \
+	done
 
 	# Remove documentation as installed by setup.py
-	rm -rf $(CURDIR)/debian/python-pycurl*/usr/share/doc/pycurl
+	rm -rf $(CURDIR)/debian/python*-pycurl*/usr/share/doc/pycurl
 
-	rm -rf $(CURDIR)/debian/python-pycurl-dbg/usr/lib/python*/*-packages/curl
-	rm -f $(CURDIR)/debian/python-pycurl-dbg/usr/lib/python*/*-packages/pycurl-*.egg-info
-
-	rm -rf debian/python-pycurl-dbg/usr/share/doc/python-pycurl-dbg
-	dh_link -ppython-pycurl-dbg usr/share/doc/python-pycurl usr/share/doc/python-pycurl-dbg
+	rm -rf $(CURDIR)/debian/python*-pycurl-dbg/usr/lib/python*/*-packages/curl
+	rm -f $(CURDIR)/debian/python*-pycurl-dbg/usr/lib/python*/*-packages/pycurl-*.egg-info
 
 override_dh_installdocs:
-	cp -a doc/*.html www/htdocs/doc/*.html www/htdocs/*.html debian/python-pycurl/usr/share/doc/python-pycurl/html
-	dh_installdocs README.rst
+	cp -a build/www/htdocs/doc/*.html $(CURDIR)/debian/python-pycurl/usr/share/doc/python-pycurl/html
+	dh_installdocs -A --link-doc=python-pycurl
 
 override_dh_installexamples:
 	dh_installexamples examples/*
@@ -74,6 +62,7 @@ override_dh_installchangelogs:
 override_dh_strip:
 ifeq (,$(filter nostrip,$(DEB_BUILD_OPTIONS)))
 	dh_strip -ppython-pycurl --dbg-package=python-pycurl-dbg
+	dh_strip -ppython3-pycurl --dbg-package=python3-pycurl-dbg
 endif
 
 override_dh_compress:

@@ -1,3 +1,24 @@
+pycurl (7.19.3.1-1) unstable; urgency=medium
+
+  [ Bernd Zeimetz ]
+  * Removing myself from uploaders. 
+
+  [ Sandro Tosi ]
+  * New upstream release
+  * debian/control
+    - switch me to Maintainer (team to Uploaders)
+  * debian/copyright
+    - used DEP-5 format
+    - updated upstream & packaging copyright information
+  * debian/patches/10_setup.py.patch
+    - refreshed
+  * Build and install doc from ReST files
+  * debian/rules
+    - use dh_installdocs to link doc dirs to main package
+  * Build Python 3 packages
+
+ -- Sandro Tosi <morph@debian.org>  Sun, 16 Feb 2014 16:57:18 +0100
+
 pycurl (7.19.3-1) unstable; urgency=medium
 
   * New upstream release
@@ -36,49 +57,9 @@ pycurl (7.19.0.3-1) unstable; urgency=low
 
 pycurl (7.19.0-7) unstable; urgency=low
 
-  [ Jakub Wilk ]
-  * Use canonical URIs for Vcs-* fields.
+  * NOT RELEASED YET
 
-  [ Sandro Tosi ]
-  * Upload to unstable
-  * debian/patches/50_dont_leak_user_agent.patch
-    - fix memory leak in reset(); thanks to Örjan Persson for the report and
-      patch; Closes: #709226
-
- -- Sandro Tosi <morph@debian.org>  Fri, 14 Jun 2013 20:14:33 +0200
-
-pycurl (7.19.0-6) experimental; urgency=low
-
-  * debian/patches/20_remove_string_options.patch
-    - No longer keep copies of string options since this is managed by libcurl,
-      needed to have pycurl.c in sync with upstream CVS, and apply further
-      patches
-  * debian/patches/30_fix_refcounts_calling_reset_twice.patch
-    - Fixes refcount bug and provides better organization of PyCurl object,
-      allowing to call reset() multiple time; thansk to Emmanuel Bouthenot for
-      the report; Closes: #690187
-  * debian/patches/40_add_CURLOPT_SEEKFUNCTION_and_CURLOPT_SEEKDATA.patch
-    - Added CURLOPT_SEEKFUNCTION, CURLOPT_SEEKDATA
-  * debian/control
-    - bump Standards-Version t0 3.9.3 (no changes needed)
-
- -- Sandro Tosi <morph@debian.org>  Sun, 28 Oct 2012 11:20:44 +0100
-
-pycurl (7.19.0-5) unstable; urgency=low
-
-  * debian/rules
-    - install debug files where gdb will look for them
-  * debian/pyversions
-    - removed, not needed
-  * debian/control
-    - bump Standards-Version to 3.9.2 (no changes needed)
-    - removed Conflicts/Replaces/Provides, not needed
-    - added libssh2-1-dev to build-depends; thanks to Jakub Wilk for the report;
-      Closes: #658952
-  * Convert to 3.0 (quilt) source format
-  * Convert to Debhelper 7
-
- -- Sandro Tosi <morph@debian.org>  Sat, 11 Feb 2012 17:22:11 +0100
+ -- Bernd Zeimetz <bzed@debian.org>  Sat, 16 Apr 2011 22:11:01 +0200
 
 pycurl (7.19.0-4) unstable; urgency=low
 

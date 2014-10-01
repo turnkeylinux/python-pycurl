@@ -14,7 +14,7 @@ all build:
 build-7.10.8:
 	$(PYTHON) setup.py build --curl-config=/home/hosts/localhost/packages/curl-7.10.8/bin/curl-config
 
-test: build
+do-test:
 	mkdir -p tests/tmp
 	PYTHONSUFFIX=$$(python -V 2>&1 |awk '{print $$2}' |awk -F. '{print $$1 "." $$2}') && \
 	PYTHONPATH=$$(ls -d build/lib.*$$PYTHONSUFFIX):$$PYTHONPATH \
@@ -22,6 +22,8 @@ test: build
 	PYTHONPATH=$$(ls -d build/lib.*$$PYTHONSUFFIX):$$PYTHONPATH \
 	$(NOSETESTS)
 	./tests/ext/test-suite.sh
+
+test: build do-test
 
 # (needs GNU binutils)
 strip: build
@@ -60,11 +62,14 @@ windist: distclean
 	python2.4 setup_win32_ssl.py bdist_wininst
 	rm -rf build
 
-docs:
-	cd doc && for file in *.rst; do rst2html "$$file" ../www/htdocs/doc/`echo "$$file" |sed -e 's/.rst$$/.html/'`; done
-	rst2html RELEASE-NOTES.rst www/htdocs/release-notes.html
+www docs:
+	mkdir -p build/www/htdocs/doc
+	#rsync -av www build
+	cd doc && for file in *.rst; do rst2html "$$file" ../build/www/htdocs/doc/`echo "$$file" |sed -e 's/.rst$$/.html/'`; done
+	rst2html RELEASE-NOTES.rst build/www/htdocs/release-notes.html
+	rst2html README.rst build/www/htdocs/README.html
 
 
-.PHONY: all build test strip install install_lib clean distclean maintainer-clean dist sdist windist
+.PHONY: all build test do-test strip install install_lib clean distclean maintainer-clean dist sdist windist
 
 .NOEXPORT:

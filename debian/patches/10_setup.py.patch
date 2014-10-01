@@ -1,23 +1,13 @@
-From bacd2e880a3d67a26323d0e9addba06dbd58e739 Mon Sep 17 00:00:00 2001
-From: Sandro Tosi <morph@debian.org>
-Date: Sat, 18 Jan 2014 22:06:19 +0100
-Subject: Adjust setup.py file for Debian architecture
-
-Patch-Name: 10_setup.py.patch
----
- setup.py | 2 +-
- 1 file changed, 1 insertion(+), 1 deletion(-)
-
-diff --git a/setup.py b/setup.py
-index 40603ff..36bfe0d 100644
+Author: Sandro Tosi <morph@debian.org>
+Description: Adjust setup.py file for Debian architecture
 --- a/setup.py
 +++ b/setup.py
-@@ -25,7 +25,7 @@ class ConfigurationError(exception_base):
-     pass
- 
- include_dirs = []
--define_macros = [("PYCURL_VERSION", '"%s"' % VERSION)]
-+define_macros = [("PYCURL_VERSION", '"%s"' % VERSION), ('HAVE_CURL_GNUTLS', 1) ]
- library_dirs = []
- libraries = []
- runtime_library_dirs = []
+@@ -54,7 +54,7 @@ def scan_argv(s, default=None):
+ class ExtensionConfiguration(object):
+     def __init__(self):
+         self.include_dirs = []
+-        self.define_macros = [("PYCURL_VERSION", '"%s"' % VERSION)]
++        self.define_macros = [("PYCURL_VERSION", '"%s"' % VERSION), ('HAVE_CURL_GNUTLS', 1) ]
+         self.library_dirs = []
+         self.libraries = []
+         self.runtime_library_dirs = []

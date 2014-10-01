@@ -3,15 +3,15 @@
 # Manifest template for creating the source distribution.
 #
 
+include AUTHORS
 include COPYING-LGPL
 include COPYING-MIT
 include ChangeLog
-include INSTALL
+include INSTALL.rst
 include MANIFEST.in
 include Makefile
 include README.rst
 include RELEASE-NOTES.rst
-include doc/*.html
 include doc/*.rst
 include examples/*.py
 include examples/tests/*.py
@@ -23,6 +23,7 @@ include tests/*.py
 include tests/certs/*.crt
 include tests/certs/*.key
 include tests/ext/*.sh
+include tests/fake-curl/*
 include tests/matrix/*.patch
 include tests/vsftpd.conf
 include winbuild.py

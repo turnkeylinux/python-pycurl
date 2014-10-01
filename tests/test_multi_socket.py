@@ -1,7 +1,7 @@
 #! /usr/bin/env python
 # -*- coding: iso-8859-1 -*-
 # vi:ts=4:et
-# $Id: test_multi2.py,v 1.15 2007/04/10 13:26:45 kjetilja Exp $
+# $Id: test_multi_socket.py,v 1.1 2006/11/10 15:03:05 kjetilja Exp $
 
 import os, sys
 try:
@@ -15,8 +15,6 @@ urls = (
     "http://curl.haxx.se",
     "http://www.python.org",
     "http://pycurl.sourceforge.net",
-    "http://pycurl.sourceforge.net/tests/403_FORBIDDEN",  # that actually exists ;-)
-    "http://pycurl.sourceforge.net/tests/404_NOT_FOUND",
 )
 
 # Read list of URIs from file specified on commandline
@@ -26,13 +24,25 @@ except IndexError:
     # No file was specified
     pass
 
+# timer callback
+def timer(msecs):
+    print 'Timer callback msecs:', msecs
+
+# socket callback
+def socket(event, socket, multi, data):
+    print event, socket, multi, data
+#    multi.assign(socket, timer)
+
 # init
 m = pycurl.CurlMulti()
+m.setopt(pycurl.M_PIPELINING, 1)
+m.setopt(pycurl.M_TIMERFUNCTION, timer)
+m.setopt(pycurl.M_SOCKETFUNCTION, socket)
 m.handles = []
 for url in urls:
     c = pycurl.Curl()
     # save info in standard Python attributes
-    c.url = url.rstrip()
+    c.url = url
     c.body = StringIO()
     c.http_code = -1
     m.handles.append(c)
@@ -45,7 +55,7 @@ for url in urls:
 num_handles = len(m.handles)
 while num_handles:
      while 1:
-         ret, num_handles = m.perform()
+         ret, num_handles = m.socket_all()
          if ret != pycurl.E_CALL_MULTI_PERFORM:
              break
      # currently no more I/O is pending, could do something in the meantime

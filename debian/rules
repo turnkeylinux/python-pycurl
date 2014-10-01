@@ -27,7 +27,7 @@ build-python%:
 
 	set -e ;\
 	for test in "tests/test_internals.py" "tests/test_memleak.py" ; do \
-  	    PYTHONPATH=$(CURDIR)/build/lib.$(DEB_BUILD_ARCH_OS)-$(shell uname -m)-$* \
+	    PYTHONPATH=`ls -d $(CURDIR)/build/lib.*-*-$*` \
 	        python$* $$test; \
 	done
 	touch $@

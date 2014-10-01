@@ -4,7 +4,7 @@ Priority: optional
 Maintainer: Debian Python Modules Team <python-modules-team@lists.alioth.debian.org>
 Uploaders: Sandro Tosi <morph@debian.org>, Bernd Zeimetz <bzed@debian.org>
 Build-Depends: debhelper (>= 5.0.37.1), python-all-dev (>= 2.3.5-9), python-all-dbg, python-support (>= 0.7.1), libcurl4-gnutls-dev (>= 7.19.0), dpatch
-Standards-Version: 3.8.2
+Standards-Version: 3.8.3
 Homepage: http://pycurl.sourceforge.net
 Vcs-Svn: svn://svn.debian.org/python-modules/packages/pycurl/trunk/
 Vcs-Browser: http://svn.debian.org/viewsvn/python-modules/packages/pycurl/trunk/

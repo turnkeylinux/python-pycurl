@@ -1,3 +1,10 @@
+pycurl (7.19.0-3) unstable; urgency=low
+
+  * Fix FTBFS on kfreebsd, thanks to KiBi (Closes: #540980).
+  * Bump Standards-version to 3.8.3, no changes needed. 
+
+ -- Bernd Zeimetz <bzed@debian.org>  Sun, 27 Sep 2009 18:03:31 +0200
+
 pycurl (7.19.0-2) unstable; urgency=low
 
   [ Sandro Tosi ]

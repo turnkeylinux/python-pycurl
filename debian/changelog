@@ -1,3 +1,9 @@
+pycurl (7.15.4-1) unstable; urgency=low
+
+  * New upstream release. 
+
+ -- Domenico Andreoli <cavok@debian.org>  Tue, 27 Jun 2006 17:16:37 +0200
+
 pycurl (7.15.2-2) unstable; urgency=low
 
   * Adopt to the new python policy.

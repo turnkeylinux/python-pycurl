@@ -13,7 +13,7 @@ unexport LDFLAGS
 export FFLAGS="-fPIC"
 
 %:
-	dh $@
+	dh $@ --with python2
 
 override_dh_auto_build:
 	set -e ;\
@@ -24,12 +24,9 @@ override_dh_auto_build:
 
 override_dh_auto_test:
 ifeq ($(filter nocheck,$(DEB_BUILD_OPTIONS)),)
-	set -e ;\
+	-set -e ;\
 	for py in $(PYVERS) ; do \
-		for test in "tests/test_internals.py" "tests/test_memleak.py" ; do \
-		    PYTHONPATH=`ls -d $(CURDIR)/build/lib.*-*-$$py` \
-	        	python$$py $$test; \
-		done; \
+		PYTHONPATH=`ls -d $(CURDIR)/build/lib.*-*-$$py` nosetests --verbose ; \
 	done
 endif
 
@@ -53,6 +50,9 @@ override_dh_auto_install:
  	    python$$py-dbg setup.py install --root=$(CURDIR)/debian/python-pycurl-dbg --install-layout=deb; \
 	done
 
+	# Remove documentation as installed by setup.py
+	rm -rf $(CURDIR)/debian/python-pycurl*/usr/share/doc/pycurl
+
 	rm -rf $(CURDIR)/debian/python-pycurl-dbg/usr/lib/python*/*-packages/curl
 	rm -f $(CURDIR)/debian/python-pycurl-dbg/usr/lib/python*/*-packages/pycurl-*.egg-info
 
@@ -61,7 +61,7 @@ override_dh_auto_install:
 
 override_dh_installdocs:
 	cp -a doc/*.html debian/python-pycurl/usr/share/doc/python-pycurl/html
-	dh_installdocs TODO
+	dh_installdocs TODO README.rst
 
 override_dh_installexamples:
 	dh_installexamples examples/*
@@ -72,8 +72,6 @@ override_dh_installchangelogs:
 override_dh_strip:
 ifeq (,$(filter nostrip,$(DEB_BUILD_OPTIONS)))
 	dh_strip -ppython-pycurl --dbg-package=python-pycurl-dbg
-	# fix python-debug-in-wrong-location lintian warning
-	cd debian/*-dbg/usr/lib/debug/usr/lib && mv pyshared pymodules
 endif
 
 override_dh_compress:

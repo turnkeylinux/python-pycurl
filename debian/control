@@ -3,8 +3,8 @@ Section: python
 Priority: optional
 Maintainer: Debian Python Modules Team <python-modules-team@lists.alioth.debian.org>
 Uploaders: Sandro Tosi <morph@debian.org>, Bernd Zeimetz <bzed@debian.org>
-Build-Depends: debhelper (>= 7.0.50~), python-all-dev (>= 2.3.5-9), python-all-dbg, python-support (>= 0.7.1), libcurl4-gnutls-dev (>= 7.19.0), librtmp-dev, libssh2-1-dev
-Standards-Version: 3.9.3
+Build-Depends: debhelper (>= 7.0.50~), python-all-dev (>= 2.6.6-3~), python-all-dbg, libcurl4-gnutls-dev (>= 7.19.0), librtmp-dev, libssh2-1-dev, python-nose, python-bottle, python-cherrypy3
+Standards-Version: 3.9.5
 X-Python-Version: all
 Homepage: http://pycurl.sourceforge.net
 Vcs-Svn: svn://anonscm.debian.org/python-modules/packages/pycurl/trunk/

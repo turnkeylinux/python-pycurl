@@ -1,7 +1,7 @@
 #! /usr/bin/env python
 # -*- coding: iso-8859-1 -*-
 # vi:ts=4:et
-# $Id: setup_win32_ssl.py,v 1.45 2008/09/09 17:40:34 kjetilja Exp $
+# $Id$
 
 import os, sys, string
 assert sys.platform == "win32", "Only for building on Win32 with SSL and zlib"
@@ -32,5 +32,5 @@ ext.extra_objects.append(r"c:\src\pool\libidn-0.5.15" + pool + "idn.lib")
 if __name__ == "__main__":
     for o in ext.extra_objects:
         assert os.path.isfile(o), o
-    apply(setup, (), setup_args)
+    setup(**setup_args)
 

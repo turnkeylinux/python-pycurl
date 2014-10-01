@@ -6,11 +6,20 @@
 #
 # By Eric S. Raymond, April 2003.
 
-import os, sys, urllib, exceptions, mimetools, pycurl
+import sys, exceptions, mimetools, pycurl
+try:
+    import urllib.parse as urllib_parse
+    from urllib.parse import urljoin
+except ImportError:
+    import urllib as urllib_parse
+    from urlparse import urljoin
 try:
     from cStringIO import StringIO
 except ImportError:
-    from StringIO import StringIO
+    try:
+        from StringIO import StringIO
+    except ImportError:
+        from io import StringIO
 
 try:
     import signal
@@ -63,7 +72,7 @@ class Curl:
 
     def set_option(self, *args):
         "Set an option on the retrieval."
-        apply(self.handle.setopt, args)
+        self.handle.setopt(*args)
 
     def set_verbosity(self, level):
         "Set verbosity to 1 to see transactions."
@@ -74,7 +83,7 @@ class Curl:
         if self.fakeheaders:
             self.set_option(pycurl.HTTPHEADER, self.fakeheaders)
         if relative_url:
-            self.set_option(pycurl.URL,os.path.join(self.base_url,relative_url))
+            self.set_option(pycurl.URL, urljoin(self.base_url, relative_url))
         self.payload = ""
         self.hdr = ""
         self.handle.perform()
@@ -83,14 +92,14 @@ class Curl:
     def get(self, url="", params=None):
         "Ship a GET request for a specified URL, capture the response."
         if params:
-            url += "?" + urllib.urlencode(params)
+            url += "?" + urllib_parse.urlencode(params)
         self.set_option(pycurl.HTTPGET, 1)
         return self.__request(url)
 
     def post(self, cgi, params):
         "Ship a POST request to a specified CGI, capture the response."
         self.set_option(pycurl.POST, 1)
-        self.set_option(pycurl.POSTFIELDS, urllib.urlencode(params))
+        self.set_option(pycurl.POSTFIELDS, urllib_parse.urlencode(params))
         return self.__request(cgi)
 
     def body(self):
@@ -103,7 +112,7 @@ class Curl:
 
     def get_info(self, *args):
         "Get information about retrieval."
-        return apply(self.handle.getinfo, args)
+        return self.handle.getinfo(*args)
 
     def info(self):
         "Return a dictionary with all info on the last response."
@@ -148,7 +157,8 @@ class Curl:
 
     def close(self):
         "Close a session, freeing resources."
-        if self.handle:  self.handle.close()
+        if self.handle:
+            self.handle.close()
         self.handle = None
         self.hdr = ""
         self.payload = ""
@@ -164,10 +174,10 @@ if __name__ == "__main__":
         url = sys.argv[1]
     c = Curl()
     c.get(url)
-    print c.body()
-    print '='*74 + '\n'
+    print(c.body())
+    print('='*74 + '\n')
     import pprint
     pprint.pprint(c.info())
-    print c.get_info(pycurl.OS_ERRNO)
-    print c.info()['os-errno']
+    print(c.get_info(pycurl.OS_ERRNO))
+    print(c.info()['os-errno'])
     c.close()

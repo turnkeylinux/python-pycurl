@@ -17,7 +17,7 @@ except ImportError:
 
 
 class Curl:
-    "High-level interface to cURL functions."
+    "High-level interface to pycurl functions."
     def __init__(self, base_url="", fakeheaders=[]):
         self.handle = pycurl.Curl()
         # These members might be set.
@@ -26,7 +26,7 @@ class Curl:
         self.fakeheaders = fakeheaders
         # Nothing past here should be modified by the caller.
         self.payload = ""
-        self.header = StringIO()
+        self.hrd = ""
         # Verify that we've got the right site; harmless on a non-SSL connect.
         self.set_option(pycurl.SSL_VERIFYHOST, 2)
         # Follow redirects in case it wants to take us to a CGI...
@@ -44,12 +44,11 @@ class Curl:
             self.payload += x
         self.set_option(pycurl.WRITEFUNCTION, payload_callback)
         def header_callback(x):
-            self.header.write(x)
+            self.hdr += x
         self.set_option(pycurl.HEADERFUNCTION, header_callback)
 
     def set_timeout(self, timeout):
-        "Set timeout for connect and object retrieval (applies for both)"
-        self.set_option(pycurl.CONNECTTIMEOUT, timeout)
+        "Set timeout for a retrieving an object"
         self.set_option(pycurl.TIMEOUT, timeout)
 
     def set_url(self, url):
@@ -58,7 +57,7 @@ class Curl:
         self.set_option(pycurl.URL, self.base_url)
 
     def set_option(self, *args):
-        "Set an option on the retrieval,"
+        "Set an option on the retrieval."
         apply(self.handle.setopt, args)
 
     def set_verbosity(self, level):
@@ -71,8 +70,8 @@ class Curl:
             self.set_option(pycurl.HTTPHEADER, self.fakeheaders)
         if relative_url:
             self.set_option(pycurl.URL,os.path.join(self.base_url,relative_url))
-        self.header.seek(0,0)
         self.payload = ""
+        self.hdr = ""
         self.handle.perform()
         return self.payload
 
@@ -93,31 +92,46 @@ class Curl:
         "Return the body from the last response."
         return self.payload
 
+    def header(self):
+        "Return the header from the last response."
+        return self.hdr
+
+    def get_info(self, *args):
+        "Get information about retrieval."
+        return apply(self.handle.getinfo, args)
+
     def info(self):
-        "Return an RFC822 object with info on the page."
-        self.header.seek(0,0)
-        url = self.handle.getinfo(pycurl.EFFECTIVE_URL)
-        if url[:5] == 'http:':
-            self.header.readline()
-            m = mimetools.Message(self.header)
-        else:
-            m = mimetools.Message(StringIO())
-        m['effective-url'] = url
-        m['http-code'] = str(self.handle.getinfo(pycurl.HTTP_CODE))
-        m['total-time'] = str(self.handle.getinfo(pycurl.TOTAL_TIME))
-        m['namelookup-time'] = str(self.handle.getinfo(pycurl.NAMELOOKUP_TIME))
-        m['connect-time'] = str(self.handle.getinfo(pycurl.CONNECT_TIME))
-        m['pretransfer-time'] = str(self.handle.getinfo(pycurl.PRETRANSFER_TIME))
-        m['redirect-time'] = str(self.handle.getinfo(pycurl.REDIRECT_TIME))
-        m['redirect-count'] = str(self.handle.getinfo(pycurl.REDIRECT_COUNT))
-        m['size-upload'] = str(self.handle.getinfo(pycurl.SIZE_UPLOAD))
-        m['size-download'] = str(self.handle.getinfo(pycurl.SIZE_DOWNLOAD))
-        m['speed-upload'] = str(self.handle.getinfo(pycurl.SPEED_UPLOAD))
-        m['header-size'] = str(self.handle.getinfo(pycurl.HEADER_SIZE))
-        m['request-size'] = str(self.handle.getinfo(pycurl.REQUEST_SIZE))
-        m['content-length-download'] = str(self.handle.getinfo(pycurl.CONTENT_LENGTH_DOWNLOAD))
-        m['content-length-upload'] = str(self.handle.getinfo(pycurl.CONTENT_LENGTH_UPLOAD))
-        m['content-type'] = (self.handle.getinfo(pycurl.CONTENT_TYPE) or '').strip(';')
+        "Return a dictionary with all info on the last response."
+        m = {}
+        m['effective-url'] = self.handle.getinfo(pycurl.EFFECTIVE_URL)
+        m['http-code'] = self.handle.getinfo(pycurl.HTTP_CODE)
+        m['total-time'] = self.handle.getinfo(pycurl.TOTAL_TIME)
+        m['namelookup-time'] = self.handle.getinfo(pycurl.NAMELOOKUP_TIME)
+        m['connect-time'] = self.handle.getinfo(pycurl.CONNECT_TIME)
+        m['pretransfer-time'] = self.handle.getinfo(pycurl.PRETRANSFER_TIME)
+        m['redirect-time'] = self.handle.getinfo(pycurl.REDIRECT_TIME)
+        m['redirect-count'] = self.handle.getinfo(pycurl.REDIRECT_COUNT)
+        m['size-upload'] = self.handle.getinfo(pycurl.SIZE_UPLOAD)
+        m['size-download'] = self.handle.getinfo(pycurl.SIZE_DOWNLOAD)
+        m['speed-upload'] = self.handle.getinfo(pycurl.SPEED_UPLOAD)
+        m['header-size'] = self.handle.getinfo(pycurl.HEADER_SIZE)
+        m['request-size'] = self.handle.getinfo(pycurl.REQUEST_SIZE)
+        m['content-length-download'] = self.handle.getinfo(pycurl.CONTENT_LENGTH_DOWNLOAD)
+        m['content-length-upload'] = self.handle.getinfo(pycurl.CONTENT_LENGTH_UPLOAD)
+        m['content-type'] = self.handle.getinfo(pycurl.CONTENT_TYPE)
+        m['response-code'] = self.handle.getinfo(pycurl.RESPONSE_CODE)
+        m['speed-download'] = self.handle.getinfo(pycurl.SPEED_DOWNLOAD)
+        m['ssl-verifyresult'] = self.handle.getinfo(pycurl.SSL_VERIFYRESULT)
+        m['filetime'] = self.handle.getinfo(pycurl.INFO_FILETIME)
+        m['starttransfer-time'] = self.handle.getinfo(pycurl.STARTTRANSFER_TIME)
+        m['redirect-time'] = self.handle.getinfo(pycurl.REDIRECT_TIME)
+        m['redirect-count'] = self.handle.getinfo(pycurl.REDIRECT_COUNT)
+        m['http-connectcode'] = self.handle.getinfo(pycurl.HTTP_CONNECTCODE)
+        m['httpauth-avail'] = self.handle.getinfo(pycurl.HTTPAUTH_AVAIL)
+        m['proxyauth-avail'] = self.handle.getinfo(pycurl.PROXYAUTH_AVAIL)
+        m['os-errno'] = self.handle.getinfo(pycurl.OS_ERRNO)
+        m['num-connects'] = self.handle.getinfo(pycurl.NUM_CONNECTS)
+        m['ssl-engines'] = self.handle.getinfo(pycurl.SSL_ENGINES)
         return m
 
     def answered(self, check):
@@ -126,8 +140,10 @@ class Curl:
 
     def close(self):
         "Close a session, freeing resources."
-        self.handle.close()
-        self.header.close()
+        if self.handle:  self.handle.close()
+        self.handle = None
+        self.hdr = ""
+        self.payload = ""
 
     def __del__(self):
         self.close()
@@ -142,5 +158,8 @@ if __name__ == "__main__":
     c.get(url)
     print c.body()
     print '='*74 + '\n'
-    print c.info()
+    import pprint
+    pprint.pprint(c.info())
+    print c.get_info(pycurl.OS_ERRNO)
+    print c.info()['os-errno']
     c.close()

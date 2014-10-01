@@ -1,3 +1,9 @@
+pycurl (7.14.0-1) unstable; urgency=low
+
+  * New upstream release.
+
+ -- Domenico Andreoli <cavok@debian.org>  Mon, 20 Jun 2005 11:34:16 +0200
+
 pycurl (7.13.2-2) unstable; urgency=low
 
   * Applied patch to build also on GNU/kFreeBSD (closes: #304857).

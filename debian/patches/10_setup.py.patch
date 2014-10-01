@@ -1,5 +1,15 @@
-Author: Sandro Tosi <morph@debian.org>
-Description: Adjust setup.py file for Debian architecture
+From 8ec889ff26d895a712a502018c540b78552bf646 Mon Sep 17 00:00:00 2001
+From: Sandro Tosi <morph@debian.org>
+Date: Tue, 30 Sep 2014 17:38:05 -0400
+Subject: Adjust setup.py file for Debian architecture
+
+Patch-Name: 10_setup.py.patch
+---
+ setup.py | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/setup.py b/setup.py
+index 6215dfa..6f778f7 100644
 --- a/setup.py
 +++ b/setup.py
 @@ -54,7 +54,7 @@ def scan_argv(s, default=None):

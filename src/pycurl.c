@@ -1,36 +1,4 @@
 /* PycURL -- cURL Python module
- *
- * Authors:
- *  Copyright (C) 2001-2008 by Kjetil Jacobsen <kjetilja at gmail.com>
- *  Copyright (C) 2001-2008 by Markus F.X.J. Oberhumer <markus at oberhumer.com>
- *  Copyright (C) 2013-2014 by Oleg Pudeyev <oleg at bsdpower.com>
- *
- *  All rights reserved.
- *
- * Contributions:
- *  Tino Lange <Tino.Lange at gmx.de>
- *  Matt King <matt at gnik.com>
- *  Conrad Steenberg <conrad at hep.caltech.edu>
- *  Amit Mongia <amit_mongia at hotmail.com>
- *  Eric S. Raymond <esr at thyrsus.com>
- *  Martin Muenstermann <mamuema at sourceforge.net>
- *  Domenico Andreoli <cavok at libero.it>
- *  Dominique <curl-and-python at d242.net>
- *  Paul Pacheco
- *  Victor Lascurain <bittor at eleka.net>
- *  K.S.Sreeram <sreeram at tachyontech.net>
- *  Jayne <corvine at gmail.com>
- *  Bastian Kleineidam
- *  Mark Eichin
- *  Aaron Hill <visine19 at hotmail.com>
- *  Daniel Pena Arteaga <dpena at ph.tum.de>
- *  Jim Patterson
- *  Yuhui H <eyecat at gmail.com>
- *  Nick Pilon <npilon at oreilly.com>
- *  Thomas Hunger <teh at camvine.org>
- *  Wim Lewis
- *
- * See file README for license information.
  */
 
 #if (defined(_WIN32) || defined(__WIN32__)) && !defined(WIN32)
@@ -115,6 +83,10 @@
 
 #if LIBCURL_VERSION_NUM >= 0x071A00 /* check for 7.26.0 or greater */
 #define HAVE_CURL_REDIR_POST_303
+#endif
+
+#if LIBCURL_VERSION_NUM >= 0x071E00 /* check for 7.30.0 or greater */
+#define HAVE_CURL_7_30_0_PIPELINE_OPTS
 #endif
 
 /* Python < 2.5 compat for Py_ssize_t */
@@ -2272,7 +2244,7 @@ do_curl_setopt(CurlObject *self, PyObject *args)
 #undef IS_LONG_OPTION
 #undef IS_OFF_T_OPTION
 
-#if PY_MAJOR_VERSION < 3
+#if PY_MAJOR_VERSION < 3 && !defined(PYCURL_AVOID_STDIO)
     /* Handle the case of file objects */
     if (PyFile_Check(obj)) {
         FILE *fp;
@@ -3200,10 +3172,15 @@ do_multi_setopt(CurlMultiObject *self, PyObject *args)
     if (PyInt_Check(obj)) {
         long d = PyInt_AsLong(obj);
         switch(option) {
-        case CURLMOPT_PIPELINING:
-            curl_multi_setopt(self->multi_handle, option, d);
-            break;
         case CURLMOPT_MAXCONNECTS:
+        case CURLMOPT_PIPELINING:
+#ifdef HAVE_CURL_7_30_0_PIPELINE_OPTS
+        case CURLMOPT_MAX_HOST_CONNECTIONS:
+        case CURLMOPT_MAX_TOTAL_CONNECTIONS:
+        case CURLMOPT_MAX_PIPELINE_LENGTH:
+	case CURLMOPT_CONTENT_LENGTH_PENALTY_SIZE:
+	case CURLMOPT_CHUNK_LENGTH_PENALTY_SIZE:
+#endif
             curl_multi_setopt(self->multi_handle, option, d);
             break;
         default:
@@ -4870,6 +4847,13 @@ initpycurl(void)
     insint_c(d, "M_SOCKETFUNCTION", CURLMOPT_SOCKETFUNCTION);
     insint_c(d, "M_PIPELINING", CURLMOPT_PIPELINING);
     insint_c(d, "M_MAXCONNECTS", CURLMOPT_MAXCONNECTS);
+#ifdef HAVE_CURL_7_30_0_PIPELINE_OPTS
+    insint_c(d, "M_MAX_HOST_CONNECTIONS", CURLMOPT_MAX_HOST_CONNECTIONS);
+    insint_c(d, "M_MAX_TOTAL_CONNECTIONS", CURLMOPT_MAX_TOTAL_CONNECTIONS);
+    insint_c(d, "M_MAX_PIPELINE_LENGTH", CURLMOPT_MAX_PIPELINE_LENGTH);
+    insint_c(d, "M_CONTENT_LENGTH_PENALTY_SIZE", CURLMOPT_CONTENT_LENGTH_PENALTY_SIZE);
+    insint_c(d, "M_CHUNK_LENGTH_PENALTY_SIZE", CURLMOPT_CHUNK_LENGTH_PENALTY_SIZE);
+#endif
 
     /* constants for setopt(IPRESOLVE, x) */
     insint_c(d, "IPRESOLVE_WHATEVER", CURL_IPRESOLVE_WHATEVER);

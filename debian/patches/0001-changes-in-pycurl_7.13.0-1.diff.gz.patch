@@ -1,0 +1,37 @@
+From 75fa32ffea410429bef4188ddf543ed85343597d Mon Sep 17 00:00:00 2001
+From: Domenico Andreoli <cavok@debian.org>
+Date: Sat, 12 Feb 2005 23:52:49 +0100
+Subject: changes in pycurl_7.13.0-1.diff.gz
+
+---
+ src/pycurl.c | 10 ++++++++++
+ 1 file changed, 10 insertions(+)
+
+diff --git a/src/pycurl.c b/src/pycurl.c
+index 504e0d0..6beb4af 100644
+--- a/src/pycurl.c
++++ b/src/pycurl.c
+@@ -1159,6 +1159,11 @@ do_curl_setopt(CurlObject *self, PyObject *args)
+         return Py_None;
+     }
+ 
++#ifndef PY_LONG_LONG
++#define PY_LONG_LONG long long
++#define PY_LONG_LONG_CAVOK_HACK
++#endif
++
+     /* Handle the case of long arguments (used by *LARGE options) */
+     if (PyLong_Check(obj)) {
+         PY_LONG_LONG d = PyLong_AsLongLong(obj);
+@@ -1180,6 +1185,11 @@ do_curl_setopt(CurlObject *self, PyObject *args)
+         return Py_None;
+     }
+ 
++#ifdef PY_LONG_LONG_CAVOK_HACK
++#undef PY_LONG_LONG
++#undef PY_LONG_LONG_CAVOK_HACK
++#endif
++
+ #undef IS_LONG_OPTION
+ #undef IS_OFF_T_OPTION
+ 

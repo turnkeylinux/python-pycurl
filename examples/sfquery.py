@@ -14,8 +14,6 @@
 import os, sys, netrc
 import curl
 
-assert sys.version[:3] >= "2.2", "requires Python 2.2 or better"
-
 class SourceForgeUserSession(curl.Curl):
     # SourceForge-specific methods.  Sensitive to changes in site design.
     def login(self, name, password):
@@ -41,6 +39,9 @@ if __name__ == "__main__":
         auth = netrc.netrc().authenticators("sourceforge.net")
         name, account, password = auth
     except:
+        if len(sys.argv) < 4:
+            print "Usage: %s <project id> <username> <password>" % sys.argv[0]
+            raise SystemExit
         name = sys.argv[2]
         password = sys.argv[3]
     session = SourceForgeUserSession("https://sourceforge.net/")

@@ -1,18 +1,10 @@
-From fee49d6404d03c2c05dc7267db9e0f4d6bac826f Mon Sep 17 00:00:00 2001
-From: Sandro Tosi <morph@debian.org>
-Date: Sun, 16 Feb 2014 16:57:18 +0100
-Subject: Adapt documentation build process for Debian packaging purposes
-
+Description: Adapt documentation build process for Debian packaging purposes
+Author: Sandro Tosi <morph@debian.org>
 Origin: vendor
 Forwarded: not-needed
 Last-Update: 2014-02-15
-Patch-Name: 20_build_doc_for_debian.patch
 ---
- Makefile | 5 +++--
- 1 file changed, 3 insertions(+), 2 deletions(-)
-
-diff --git a/Makefile b/Makefile
-index c45a310..19d573e 100644
+This patch header follows DEP-3: http://dep.debian.net/deps/dep3/
 --- a/Makefile
 +++ b/Makefile
 @@ -63,10 +63,11 @@ windist: distclean

@@ -1,3 +1,31 @@
+pycurl (7.19.0-1) unstable; urgency=low
+
+  [ Bernd Zeimetz ]
+  * debian/control:
+    - Rising the priority to optional, as we have rdepends in optional.
+  * Switching from python-central to python-support. 
+  * Support building for Python 2.6. 
+
+  [ Sandro Tosi ]
+  * New upstream release.
+  * debian/control
+    - bump libcurl4-gnutls-dev versioned depends to >= 7.19.0
+    - updated my email address
+    - bump Standards-Version to 3.8.1
+      + added debian/README.source
+    - added Vcs-{Browser,Svn} fields
+    - added ${misc:Depends} to binary packages
+    - switch Vcs-Browser field to viewsvn
+    - adjusted section to 'debug' for -dbg package
+    - force libcurl3-gnutls depends to at least on version 7.19.0;
+      Closes: #527546
+  * debian/patches/10_setup.py.dpatch
+    - added description (to please lintian) and updated my email address
+  * debian/copyright
+    - used the correct location of LGPL 2.1 on local machine
+
+ -- Bernd Zeimetz <bzed@debian.org>  Fri, 15 May 2009 22:33:30 +0200
+
 pycurl (7.18.2-1) unstable; urgency=low
 
   * New upstream release.

@@ -1,13 +1,13 @@
 #! /usr/bin/env python
 # -*- coding: iso-8859-1 -*-
 # vi:ts=4:et
-# $Id: setup.py,v 1.143 2007/07/11 17:31:07 kjetilja Exp $
+# $Id: setup.py,v 1.147 2008/04/22 14:00:45 kjetilja Exp $
 
 """Setup script for the PycURL module distribution."""
 
 PACKAGE = "pycurl"
 PY_PACKAGE = "curl"
-VERSION = "7.16.4"
+VERSION = "7.18.1"
 
 import glob, os, re, sys, string
 import distutils
@@ -96,7 +96,10 @@ else:
                 include_dirs.append(e[2:])
         else:
             extra_compile_args.append(e)
-    for e in split_quoted(os.popen("'%s' --libs" % CURL_CONFIG).read()):
+    libs = split_quoted(
+        os.popen("'%s' --libs" % CURL_CONFIG).read()+\
+        os.popen("'%s' --static-libs" % CURL_CONFIG).read())
+    for e in libs:
         if e[:2] == "-l":
             libraries.append(e[2:])
             if e[2:] == 'ssl':
@@ -150,7 +153,7 @@ def get_data_files():
     else:
         datadir = os.path.join("share", "doc", PACKAGE)
     #
-    files = ["ChangeLog", "COPYING", "INSTALL", "README", "TODO",]
+    files = ["ChangeLog", "COPYING", "COPYING2", "INSTALL", "README", "TODO",]
     if files:
         data_files.append((os.path.join(datadir), files))
     files = glob.glob(os.path.join("doc", "*.html"))
@@ -184,7 +187,7 @@ setup_args = get_kw(
     maintainer="Kjetil Jacobsen, Markus F.X.J. Oberhumer",
     maintainer_email="kjetilja at gmail.com, markus at oberhumer.com",
     url="http://pycurl.sourceforge.net/",
-    license="GNU Lesser General Public License (LGPL)",
+    license="LGPL/MIT",
     data_files=get_data_files(),
     ext_modules=[ext],
     long_description="""

@@ -1,8 +1,8 @@
-pycurl (7.19.5-2) UNRELEASED; urgency=medium
+pycurl (7.19.5-2) unstable; urgency=medium
 
   * d/control: Update the Vcs-* headers for the move to git-dpm.
 
- -- Barry Warsaw <barry@debian.org>  Wed, 01 Oct 2014 18:00:00 -0400
+ -- Barry Warsaw <barry@debian.org>  Wed, 01 Oct 2014 19:42:50 -0400
 
 pycurl (7.19.5-1) unstable; urgency=medium
 

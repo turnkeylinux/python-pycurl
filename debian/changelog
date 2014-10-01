@@ -1,3 +1,9 @@
+pycurl (7.16.2.1-2) unstable; urgency=low
+
+  * Proper SSL library flavour is now known during build. 
+
+ -- Domenico Andreoli <cavok@debian.org>  Mon, 14 May 2007 01:17:33 +0200
+
 pycurl (7.16.2.1-1) unstable; urgency=low
 
   * New upstream release.

@@ -1,19 +1,44 @@
-pycurl (7.19.3.1-1.2) unstable; urgency=medium
+pycurl (7.19.5-1) unstable; urgency=medium
 
-  * Non-maintainer upload.
-  * Upload to unstable.
+  * Team upload.
 
- -- Andreas Metzler <ametzler@debian.org>  Sun, 27 Jul 2014 14:00:50 +0200
+  [ Sandro Tosi ]
+  * debian/control
+    - fix short description (adding py3k tag to the right package); thanks to
+      bodrato for the report; Closes: #739712
 
-pycurl (7.19.3.1-1.1) experimental; urgency=medium
+  [ Andreas Metzler ]
+  * debian/control
+    - Drop build-depency on librtmp-dev, as it is not in "curl-config
+      --static-libs", otoh add one for libgnutls28-dev, since pycurl.c 
+      #includes <gnutls/gnutls.h>. Closes: #751059
+      (Applied from NMU diff by Barry Warsaw.  Closes: #756199)
 
-  * Non-maintainer upload.
-  * Upload to experimental, to test successful build/testsuite run.
-  * Drop build-depency on librtmp-dev, as it is not in "curl-config
-    --static-libs", otoh add one for libgnutls28-dev, since pycurl.c 
-    #includes <gnutls/gnutls.h>. Closes: #751059
+  [ Barry Warsaw ]
+  * New upstream release.
+  * Place myself as Maintainer with previous maintainer's approval.
+  * debian/control, debian/rules:
+    - Back ported Ubuntu change to split the docs into a separate
+      python-pycurl-doc package.  This breaks the dependency of python3-curl
+      on python-curl.  Given by Matthias Klose.  Closes: #757694
+  * debian/control:
+    - Add Suggests on python-curl-doc.
+    - Update long descriptions.
+    - wrap-and-sort
+  * debian/rules:
+    - Added --with sphinxdoc.
+    - In override_dh_auto_build, call `make gen` since the upstream
+      tarball does not seem to contain the generated src/docstrings.{h,c}
+      files.
+    - Updated override_dh_installdocs for the upstream moved docs directory.
+  * debian/copyright: Added short license description to LGPL part to quiet
+    lintian warning empty-short-license-in-dep5-copyright.
+  * debian/python-pycurl-doc.doc-base: Renamed from python-pycurl.doc-base
+    and fixed links.
+  * debian/python-pycurl.dirs: Removed.
+  * debian/patches/20_build_doc_for_debian.patch: Updated and refreshed.
 
- -- Andreas Metzler <ametzler@debian.org>  Fri, 18 Jul 2014 07:46:19 +0200
+ -- Barry Warsaw <barry@debian.org>  Tue, 30 Sep 2014 17:38:05 -0400
 
 pycurl (7.19.3.1-1) unstable; urgency=medium
 

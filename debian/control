@@ -1,9 +1,21 @@
 Source: pycurl
 Section: python
 Priority: optional
-Maintainer: Sandro Tosi <morph@debian.org>
+Maintainer: Barry Warsaw <barry@debian.org>
 Uploaders: Debian Python Modules Team <python-modules-team@lists.alioth.debian.org>
-Build-Depends: debhelper (>= 7.0.50~), python-all-dev (>= 2.6.6-3~), python-all-dbg, python3-all-dev, python3-all-dbg, dh-python, libcurl4-gnutls-dev (>= 7.19.0), libssh2-1-dev, python-nose, python-bottle, python-cherrypy3, python-docutils, libgnutls28-dev
+Build-Depends: debhelper (>= 7.0.50~),
+               dh-python,
+               libcurl4-gnutls-dev (>= 7.19.0),
+               libgnutls28-dev,
+               libssh2-1-dev,
+               python-all-dbg,
+               python-all-dev (>= 2.6.6-3~),
+               python-bottle,
+               python-docutils,
+               python-nose,
+               python-sphinx,
+               python3-all-dbg,
+               python3-all-dev
 Standards-Version: 3.9.5
 X-Python-Version: all
 X-Python3-Version: >= 3.3
@@ -13,19 +25,21 @@ Vcs-Browser: http://anonscm.debian.org/viewvc/python-modules/packages/pycurl/tru
 
 Package: python-pycurl
 Architecture: any
-Suggests: libcurl4-gnutls-dev, python-pycurl-dbg
-Depends: ${shlibs:Depends}, ${python:Depends}, ${misc:Depends}
-Description: Python bindings to libcurl (Python 3)
+Suggests: libcurl4-gnutls-dev, python-pycurl-dbg, python-pycurl-doc
+Depends: ${misc:Depends}, ${python:Depends}, ${shlibs:Depends}
+Description: Python bindings to libcurl
  This module provides the Python bindings to libcurl. Please refer to
  the libcurl documentation available in libcurl4-gnutls-dev Debian package.
  .
  NOTE: the SSL support is provided by GnuTLS.
+ .
+ This package contains PyCURL for Python 2.
 
 Package: python3-pycurl
 Architecture: any
-Suggests: libcurl4-gnutls-dev, python3-pycurl-dbg
-Depends: ${shlibs:Depends}, ${python3:Depends}, ${misc:Depends}
-Description: Python bindings to libcurl
+Suggests: libcurl4-gnutls-dev, python-pycurl-doc, python3-pycurl-dbg
+Depends: ${misc:Depends}, ${python3:Depends}, ${shlibs:Depends}
+Description: Python bindings to libcurl (Python 3)
  This module provides the Python bindings to libcurl. Please refer to
  the libcurl documentation available in libcurl4-gnutls-dev Debian package.
  .
@@ -37,20 +51,38 @@ Package: python-pycurl-dbg
 Section: debug
 Priority: extra
 Architecture: any
-Depends: ${shlibs:Depends}, python-dbg, python-pycurl (= ${binary:Version}), ${misc:Depends}
+Depends: python-dbg,
+         python-pycurl (= ${binary:Version}),
+         ${misc:Depends},
+         ${shlibs:Depends}
 Description: Python bindings to libcurl (debug extension)
  This module provides the Python bindings to libcurl. Please refer to
  the libcurl documentation available in libcurl4-gnutls-dev Debian package.
  .
- This package contains the extension built for the Python debug interpreter.
+ This package contains the extension built for the Python 2 debug interpreter.
 
 Package: python3-pycurl-dbg
 Section: debug
 Priority: extra
 Architecture: any
-Depends: ${shlibs:Depends}, python3-dbg, python3-pycurl (= ${binary:Version}), ${misc:Depends}
+Depends: python3-dbg,
+         python3-pycurl (= ${binary:Version}),
+         ${misc:Depends},
+         ${shlibs:Depends}
 Description: Python bindings to libcurl (debug extension, Python 3)
  This module provides the Python bindings to libcurl. Please refer to
  the libcurl documentation available in libcurl4-gnutls-dev Debian package.
  .
  This package contains the extension built for the Python 3 debug interpreter.
+
+Package: python-pycurl-doc
+Architecture: all
+Section: doc
+Depends: ${misc:Depends}
+Description: Python bindings to libcurl (documentation)
+ This module provides the Python bindings to libcurl. Please refer to
+ the libcurl documentation available in libcurl4-gnutls-dev Debian package.
+ .
+ NOTE: the SSL support is provided by GnuTLS.
+ .
+ This package contains the PyCURL documentation.

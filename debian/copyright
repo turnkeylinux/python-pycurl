@@ -7,7 +7,7 @@ Copyright:
  Copyright (C) 2001-2008 by Kjetil Jacobsen <kjetilja at gmail.com>
  Copyright (C) 2001-2008 by Markus F.X.J. Oberhumer <markus at oberhumer.com>
  Copyright (C) 2013-2014 by Oleg Pudeyev <oleg at bsdpower.com>
-License:
+License: LGPL-2.1
  PycURL is dual licensed under the LGPL (either version 2.1 or later)
  and an MIT/X derivative license based on the cURL license. You can
  redistribute and/or modify PycURL according to the terms of either

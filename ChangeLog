@@ -1,3 +1,62 @@
+Version 7.19.5 [requires libcurl-7.19.0 or better] - 2014-07-12
+---------------------------------------------------------------
+
+        * Documentation greatly improved. Quickstart guide added.
+
+        * pycurl.Curl, pycurl.CurlMulti and pycurl.CurlShare are now classes
+          rather than factory functions. Previously, the classes were "hidden"
+          (they were accessible as e.g. type(pycurl.Curl()), but could not be
+          instantiated, nor could class methods be obtained from the classes.
+          Please see this mailing list post for further information:
+          http://curl.haxx.se/mail/curlpython-2014-06/0004.html
+
+        * When passing a file-like object to READDATA option, PycURL was
+          mistakenly looking for write method on this object. Now read method
+          is looked up, as would be expected.
+
+        * Python 3.4 is now officially supported.
+
+        * Windows packages now build libcurl against zlib.
+
+        * CherryPy is no longer required for the test suite, ssl module from
+          the Python standard library is used instead.
+
+        * Fixed a reference leak of SOCKET and TIMER callbacks on
+          CurlMulti instances, thanks to Ben Darnell.
+
+        * Fixed build against openssl on cygwin, where pycurl needs to link
+          against libcrypto rather than libssl.
+
+        * Added CURLOPT_SSH_KNOWNHOSTS (libcurl 7.19.6+).
+
+        * Added CURLE_FTP_ACCEPT_FAILED (libcurl 7.24.0+).
+
+        * Added CURLE_NOT_BUILT_IN and CURLE_UNKNOWN_OPTION (libcurl 7.21.5+).
+
+        * Added CURL_SEEKFUNC_OK, CURL_SEEKFUNC_FAIL and
+          CURL_SEEKFUNC_CANTSEEK. All contstants require libcurl 7.19.5+;
+          numeric values of CURL_SEEKFUNC_OK and CURL_SEEKFUNC_FAIL were
+          understood earlier but constants only exist as of libcurl 7.19.5.
+
+        * Added CURLINFO_CONDITION_UNMET (libcurl 7.19.4+).
+
+        * Added CURLPROXY_HTTP_1_0 (libcurl 7.19.4+).
+
+        * Added CURLOPT_SOCKS5_GSSAPI_SERVICE and
+          CURLOPT_SOCKS5_GSSAPI_NEC (libcurl 7.19.4+).
+
+        * Added CURLOPT_TFTP_BLKSIZE (libcurl 7.19.4+).
+
+        * Added CURLOPT_PROTOCOLS, CURLOPT_REDIR_PROTOCOLS and associated
+          CURLPROTO_* constants, which require libcurl 7.19.4+.
+
+        * Fixed a reference leak of OPENSOCKET and SEEK callbacks, thanks to
+          Ben Darnell.
+
+        * C source is now split into several files.
+
+        * Documentation is now processed by sphinx.
+
 Version 7.19.3.1 [requires libcurl-7.19.0 or better] - 2014-02-05
 -----------------------------------------------------------------
 
@@ -69,6 +128,11 @@ Version 7.19.3 [requires libcurl-7.19.0 or better] - 2014-01-09
           constants. CURL_REDIR_POST_303 requires libcurl 7.26.0 or higher,
           all others require libcurl 7.19.1 or higher.
 
+        * As part of Python 3 support, WRITEDATA option now accepts
+          any object with a write method on Python 2 and Python 3.
+          For non-file objects, c.setopt(c.WRITEDATA, buf) is equivalent to
+          c.setopt(c.WRITEFUNCTION, buf.write).
+
         * PycURL now supports Python 3.1 through 3.3. Python 3.0 might
           work but it appears to ship with broken distutils, making virtualenv
           not function on it.
@@ -103,9 +167,9 @@ Version 7.19.3 [requires libcurl-7.19.0 or better] - 2014-01-09
 Version 7.19.0.3 [requires libcurl-7.19.0 or better] - 2013-12-24
 -----------------------------------------------------------------
 
-	* Re-release of 7.19.0.2 with minor changes to build Windows packages
-	  due to botched 7.19.0.2 files on PyPi.
-	  http://curl.haxx.se/mail/curlpython-2013-12/0021.html
+        * Re-release of 7.19.0.2 with minor changes to build Windows packages
+          due to botched 7.19.0.2 files on PyPi.
+          http://curl.haxx.se/mail/curlpython-2013-12/0021.html
 
 Version 7.19.0.2 [requires libcurl-7.19.0 or better] - 2013-10-08
 -----------------------------------------------------------------

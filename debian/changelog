@@ -1,3 +1,16 @@
+pycurl (7.19.0-7) unstable; urgency=low
+
+  [ Jakub Wilk ]
+  * Use canonical URIs for Vcs-* fields.
+
+  [ Sandro Tosi ]
+  * Upload to unstable
+  * debian/patches/50_dont_leak_user_agent.patch
+    - fix memory leak in reset(); thanks to Örjan Persson for the report and
+      patch; Closes: #709226
+
+ -- Sandro Tosi <morph@debian.org>  Fri, 14 Jun 2013 20:14:33 +0200
+
 pycurl (7.19.0-6) experimental; urgency=low
 
   * debian/patches/20_remove_string_options.patch

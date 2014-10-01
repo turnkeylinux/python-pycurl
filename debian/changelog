@@ -1,3 +1,11 @@
+pycurl (7.16.2.1-1) unstable; urgency=low
+
+  * New upstream release.
+  * Build depends on libcurl4-gnutls-dev (closes: #423446, #423632).
+  * Use dh_pycentral instead of dh_python.
+
+ -- Domenico Andreoli <cavok@debian.org>  Thu, 10 May 2007 16:29:02 +0200
+
 pycurl (7.15.5-1) unstable; urgency=low
 
   * New upstream release.

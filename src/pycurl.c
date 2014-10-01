@@ -1,10 +1,10 @@
-/* $Id: pycurl.c,v 1.114 2006/08/10 11:41:16 kjetilja Exp $ */
+/* $Id: pycurl.c,v 1.133 2007/04/23 17:24:21 kjetilja Exp $ */
 
 /* PycURL -- cURL Python module
  *
  * Authors:
- *  Copyright (C) 2001-2006 by Kjetil Jacobsen <kjetilja at gmail.com>
- *  Copyright (C) 2001-2006 by Markus F.X.J. Oberhumer <markus at oberhumer.com>
+ *  Copyright (C) 2001-2007 by Kjetil Jacobsen <kjetilja at gmail.com>
+ *  Copyright (C) 2001-2007 by Markus F.X.J. Oberhumer <markus at oberhumer.com>
  *
  * Contributions:
  *  Tino Lange <Tino.Lange at gmx.de>
@@ -19,6 +19,9 @@
  *  Victor Lascurain <bittor at eleka.net>
  *  K.S.Sreeram <sreeram at tachyontech.net>
  *  Jayne <corvine at gmail.com>
+ *  Bastian Kleineidam
+ *  Mark Eichin
+ *  Aaron Hill <visine19 at hotmail.com>
  *
  * See file COPYING for license information.
  */
@@ -47,8 +50,15 @@
 #if !defined(PY_VERSION_HEX) || (PY_VERSION_HEX < 0x02020000)
 #  error "Need Python version 2.2 or greater to compile pycurl."
 #endif
-#if !defined(LIBCURL_VERSION_NUM) || (LIBCURL_VERSION_NUM < 0x070f05)
-#  error "Need libcurl version 7.15.5 or greater to compile pycurl."
+#if !defined(LIBCURL_VERSION_NUM) || (LIBCURL_VERSION_NUM < 0x071002)
+#  error "Need libcurl version 7.16.2 or greater to compile pycurl."
+#endif
+
+/* Python < 2.5 compat for Py_ssize_t */
+#if PY_VERSION_HEX < 0x02050000 && !defined(PY_SSIZE_T_MIN)
+typedef int Py_ssize_t;
+#define PY_SSIZE_T_MAX INT_MAX
+#define PY_SSIZE_T_MIN INT_MIN
 #endif
 
 #undef UNUSED
@@ -83,6 +93,7 @@ static void pycurl_ssl_cleanup(void);
 
 /* Calculate the number of OBJECTPOINT options we need to store */
 #define OPTIONS_SIZE    ((int)CURLOPT_LASTENTRY % 10000)
+#define MOPTIONS_SIZE   ((int)CURLMOPT_LASTENTRY % 10000)
 static int OPT_INDEX(int o)
 {
     assert(o >= CURLOPTTYPE_OBJECTPOINT);
@@ -116,6 +127,9 @@ typedef struct {
     fd_set read_fd_set;
     fd_set write_fd_set;
     fd_set exc_fd_set;
+    /* callbacks */
+    PyObject *t_cb;
+    PyObject *s_cb;
 } CurlMultiObject;
 
 typedef struct {
@@ -131,8 +145,6 @@ typedef struct {
     struct curl_slist *quote;
     struct curl_slist *postquote;
     struct curl_slist *prequote;
-    struct curl_slist *source_prequote;
-    struct curl_slist *source_postquote;
     /* callbacks */
     PyObject *w_cb;
     PyObject *h_cb;
@@ -191,7 +203,7 @@ typedef struct {
 static char *PyString_AsString_NoNUL(PyObject *obj)
 {
     char *s = NULL;
-    int r;
+    Py_ssize_t r;
     r = PyString_AsStringAndSize(obj, &s, NULL);
     if (r != 0)
         return NULL;    /* exception already set */
@@ -208,7 +220,7 @@ static PyObject *convert_slist(struct curl_slist *slist, int free_flags)
     PyObject *ret = NULL;
     struct curl_slist *slist_start = slist;
 
-    ret = PyList_New(0);
+    ret = PyList_New((Py_ssize_t)0);
     if (ret == NULL) goto error;
 
     for ( ; slist != NULL; slist = slist->next) {
@@ -273,6 +285,26 @@ get_thread_state(const CurlObject *self)
     }
     return NULL;
 }
+
+
+static PyThreadState *
+get_thread_state_multi(const CurlMultiObject *self)
+{
+    /* Get the thread state for callbacks to run in when given
+     * multi handles instead of regular handles
+     */
+    if (self == NULL)
+        return NULL;
+    assert(self->ob_type == p_CurlMulti_Type);
+    if (self->state != NULL)
+    {
+        /* inside multi_perform() */
+        assert(self->multi_handle != NULL);
+        return self->state;
+    }
+    return NULL;
+}
+
 
 /* assert some CurlShareObject invariants */
 static void
@@ -585,6 +617,27 @@ do_share_clear(CurlShareObject *self)
     return 0;
 }
 
+
+static void
+util_share_close(CurlShareObject *self){
+    curl_share_cleanup(self->share_handle);
+    share_lock_destroy(self->lock);
+}
+
+
+static void
+do_share_dealloc(CurlShareObject *self){
+    PyObject_GC_UnTrack(self);
+    Py_TRASHCAN_SAFE_BEGIN(self);
+
+    ZAP(self->dict);
+    util_share_close(self);
+
+    PyObject_GC_Del(self);
+    Py_TRASHCAN_SAFE_END(self)
+}
+
+
 /* setopt, unsetopt*/
 /* --------------- unsetopt/setopt/getinfo --------------- */
 
@@ -668,8 +721,6 @@ util_curl_new(void)
     self->quote = NULL;
     self->postquote = NULL;
     self->prequote = NULL;
-    self->source_postquote = NULL;
-    self->source_prequote = NULL;
 
     /* Set callback pointers to NULL by default */
     self->w_cb = NULL;
@@ -859,8 +910,6 @@ util_curl_close(CurlObject *self)
     SFREE(self->quote);
     SFREE(self->postquote);
     SFREE(self->prequote);
-    SFREE(self->source_postquote);
-    SFREE(self->source_prequote);
 #undef SFREE
 
     /* Last, free the options.  This must be done after the curl handle
@@ -1116,8 +1165,8 @@ read_callback(char *ptr, size_t size, size_t nmemb, void *stream)
     /* handle result */
     if (PyString_Check(result)) {
         char *buf = NULL;
-        int obj_size = -1;
-        int r;
+        Py_ssize_t obj_size = -1;
+        Py_ssize_t r;
         r = PyString_AsStringAndSize(result, &buf, &obj_size);
         if (r != 0 || obj_size < 0 || obj_size > total_size) {
             PyErr_Format(ErrorObject, "invalid return value for read callback %ld %ld", (long)obj_size, (long)total_size);
@@ -1440,7 +1489,7 @@ do_curl_setopt(CurlObject *self, PyObject *args)
     /* Handle the case of string arguments */
     if (PyString_Check(obj)) {
         char *str = NULL;
-        int len = -1;
+        Py_ssize_t len = -1;
         char *buf;
         int opt_index;
 
@@ -1474,10 +1523,9 @@ do_curl_setopt(CurlObject *self, PyObject *args)
         case CURLOPT_URL:
         case CURLOPT_USERAGENT:
         case CURLOPT_USERPWD:
-        case CURLOPT_SOURCE_HOST:
-        case CURLOPT_SOURCE_USERPWD:
-        case CURLOPT_SOURCE_PATH:
         case CURLOPT_FTP_ALTERNATIVE_TO_USER:
+        case CURLOPT_SSH_PUBLIC_KEYFILE:
+        case CURLOPT_SSH_PRIVATE_KEYFILE:
 /* FIXME: check if more of these options allow binary data */
             str = PyString_AsString_NoNUL(obj);
             if (str == NULL)
@@ -1487,7 +1535,11 @@ do_curl_setopt(CurlObject *self, PyObject *args)
             if (PyString_AsStringAndSize(obj, &str, &len) != 0)
                 return NULL;
             /* automatically set POSTFIELDSIZE */
-            res = curl_easy_setopt(self->handle, CURLOPT_POSTFIELDSIZE, (long)len);
+            if (len <= INT_MAX) {
+                res = curl_easy_setopt(self->handle, CURLOPT_POSTFIELDSIZE, (long)len);
+            } else {
+                res = curl_easy_setopt(self->handle, CURLOPT_POSTFIELDSIZE_LARGE, (curl_off_t)len);
+            }
             if (res != CURLE_OK) {
                 CURLERROR_RETVAL();
             }
@@ -1627,7 +1679,7 @@ do_curl_setopt(CurlObject *self, PyObject *args)
     if (PyList_Check(obj)) {
         struct curl_slist **old_slist = NULL;
         struct curl_slist *slist = NULL;
-        int i, len;
+        Py_ssize_t i, len;
 
         switch (option) {
         case CURLOPT_HTTP200ALIASES:
@@ -1644,12 +1696,6 @@ do_curl_setopt(CurlObject *self, PyObject *args)
             break;
         case CURLOPT_PREQUOTE:
             old_slist = &self->prequote;
-            break;
-        case CURLOPT_SOURCE_PREQUOTE:
-            old_slist = &self->source_prequote;
-            break;
-        case CURLOPT_SOURCE_POSTQUOTE:
-            old_slist = &self->source_postquote;
             break;
         case CURLOPT_HTTPPOST:
             break;
@@ -1673,7 +1719,7 @@ do_curl_setopt(CurlObject *self, PyObject *args)
 
             for (i = 0; i < len; i++) {
                 char *nstr = NULL, *cstr = NULL;
-                int nlen = -1, clen = -1;
+                Py_ssize_t nlen = -1, clen = -1;
                 PyObject *listitem = PyList_GetItem(obj, i);
 
                 if (!PyTuple_Check(listitem)) {
@@ -1710,7 +1756,7 @@ do_curl_setopt(CurlObject *self, PyObject *args)
                 else if (PyTuple_Check(PyTuple_GET_ITEM(listitem, 1))) {
                     /* Supports content, file and content-type */
                     PyObject *t = PyTuple_GET_ITEM(listitem, 1);
-                    int tlen = PyTuple_Size(t);
+                    Py_ssize_t tlen = PyTuple_Size(t);
                     int j, k, l;
                     struct curl_forms *forms = NULL;
 
@@ -1732,7 +1778,8 @@ do_curl_setopt(CurlObject *self, PyObject *args)
                     /* Iterate all the tuple members pairwise */
                     for (j = 0, k = 0, l = 0; j < tlen; j += 2, l++) {
                         char *ostr;
-                        int olen, val;
+                        Py_ssize_t olen;
+                        int val;
 
                         if (j == (tlen-1)) {
                             PyErr_SetString(PyExc_TypeError, "expected value");
@@ -1771,7 +1818,7 @@ do_curl_setopt(CurlObject *self, PyObject *args)
                         if (val == CURLFORM_COPYCONTENTS) {
                             /* Contents can contain \0 bytes so we specify the length */
                             forms[k].option = CURLFORM_CONTENTSLENGTH;
-                            forms[k].value = (char *)olen;
+                            forms[k].value = (const char *)olen;
                             ++k;
                         }
                     }
@@ -2091,6 +2138,8 @@ do_multi_new(PyObject *dummy)
     /* Initialize object attributes */
     self->dict = NULL;
     self->state = NULL;
+    self->t_cb = NULL;
+    self->s_cb = NULL;
 
     /* Allocate libcurl multi handle */
     self->multi_handle = curl_multi_init();
@@ -2100,12 +2149,6 @@ do_multi_new(PyObject *dummy)
         return NULL;
     }
     return self;
-}
-
-static void
-util_share_close(CurlShareObject *self){
-    curl_share_cleanup(self->share_handle);
-    share_lock_destroy(self->lock);
 }
 
 static void
@@ -2120,17 +2163,6 @@ util_multi_close(CurlMultiObject *self)
     }
 }
 
-static void
-do_share_dealloc(CurlShareObject *self){
-    PyObject_GC_UnTrack(self);
-    Py_TRASHCAN_SAFE_BEGIN(self);
-
-    ZAP(self->dict);
-    util_share_close(self);
-
-    PyObject_GC_Del(self);
-    Py_TRASHCAN_SAFE_END(self)
-}
 
 static void
 do_multi_dealloc(CurlMultiObject *self)
@@ -2181,8 +2213,253 @@ do_multi_traverse(CurlMultiObject *self, visitproc visit, void *arg)
 #undef VISIT
 }
 
-/* --------------- perform --------------- */
 
+/* --------------- setopt --------------- */
+
+int multi_socket_callback(CURL *easy,
+                          curl_socket_t s,
+                          int what,
+                          void *userp,
+                          void *socketp)
+{
+    CurlMultiObject *self;
+    CurlObject *easy_self;
+    PyThreadState *tmp_state;
+    PyObject *arglist;
+    PyObject *result = NULL;
+    int ret;
+
+    /* acquire thread */
+    self = (CurlMultiObject *)userp;
+    ret = curl_easy_getinfo(easy, CURLINFO_PRIVATE, &easy_self);
+    tmp_state = get_thread_state_multi(self);
+    if (tmp_state == NULL)
+        return 0;
+    PyEval_AcquireThread(tmp_state);
+
+    /* check args */
+    if (self->s_cb == NULL)
+        goto silent_error;
+
+    if (socketp == NULL) {
+        Py_INCREF(Py_None);
+        socketp = Py_None;
+    }
+
+    /* run callback */
+    arglist = Py_BuildValue("(iiOO)", what, s, userp, (PyObject *)socketp);
+    if (arglist == NULL)
+        goto verbose_error;
+    result = PyEval_CallObject(self->s_cb, arglist);
+    Py_DECREF(arglist);
+    if (result == NULL)
+        goto verbose_error;
+
+    /* return values from socket callbacks should be ignored */
+
+silent_error:
+    Py_XDECREF(result);
+    PyEval_ReleaseThread(tmp_state);
+    return 0;
+verbose_error:
+    PyErr_Print();
+    goto silent_error;
+    return 0;
+}
+
+
+int multi_timer_callback(CURLM *multi,
+                         long timeout_ms,
+                         void *userp)
+{
+    CurlMultiObject *self;
+    PyThreadState *tmp_state;
+    PyObject *arglist;
+    PyObject *result = NULL;
+    int ret = 0;       /* always success */
+
+    UNUSED(multi);
+
+    /* acquire thread */
+    self = (CurlMultiObject *)userp;
+    tmp_state = get_thread_state_multi(self);
+    if (tmp_state == NULL)
+        return ret;
+    PyEval_AcquireThread(tmp_state);
+
+    /* check args */
+    if (self->t_cb == NULL)
+        goto silent_error;
+
+    /* run callback */
+    arglist = Py_BuildValue("(i)", timeout_ms);
+    if (arglist == NULL)
+        goto verbose_error;
+    result = PyEval_CallObject(self->t_cb, arglist);
+    Py_DECREF(arglist);
+    if (result == NULL)
+        goto verbose_error;
+
+    /* return values from timer callbacks should be ignored */
+
+silent_error:
+    Py_XDECREF(result);
+    PyEval_ReleaseThread(tmp_state);
+    return ret;
+verbose_error:
+    PyErr_Print();
+    goto silent_error;
+
+    return 0;
+}
+
+
+static PyObject *
+do_multi_setopt(CurlMultiObject *self, PyObject *args)
+{
+    int option;
+    PyObject *obj;
+
+    if (!PyArg_ParseTuple(args, "iO:setopt", &option, &obj))
+        return NULL;
+    if (check_multi_state(self, 1 | 2, "setopt") != 0)
+        return NULL;
+
+    /* Early checks of option value */
+    if (option <= 0)
+        goto error;
+    if (option >= (int)CURLOPTTYPE_OFF_T + MOPTIONS_SIZE)
+        goto error;
+    if (option % 10000 >= MOPTIONS_SIZE)
+        goto error;
+
+    /* Handle the case of integer arguments */
+    if (PyInt_Check(obj)) {
+        long d = PyInt_AsLong(obj);
+        switch(option) {
+        case CURLMOPT_PIPELINING:
+            curl_multi_setopt(self->multi_handle, option, d);
+            break;
+        default:
+            PyErr_SetString(PyExc_TypeError, "integers are not supported for this option");
+            return NULL;
+        }
+        Py_INCREF(Py_None);
+        return Py_None;
+    }
+    if (PyFunction_Check(obj) || PyCFunction_Check(obj) || PyMethod_Check(obj)) {
+        /* We use function types here to make sure that our callback
+         * definitions exactly match the <curl/multi.h> interface.
+         */
+        const curl_multi_timer_callback t_cb = multi_timer_callback;
+        const curl_socket_callback s_cb = multi_socket_callback;
+
+        switch(option) {
+        case CURLMOPT_SOCKETFUNCTION:
+            curl_multi_setopt(self->multi_handle, CURLMOPT_SOCKETFUNCTION, s_cb);
+            curl_multi_setopt(self->multi_handle, CURLMOPT_SOCKETDATA, self);
+            Py_INCREF(obj);
+            self->s_cb = obj;
+            break;
+        case CURLMOPT_TIMERFUNCTION:
+            curl_multi_setopt(self->multi_handle, CURLMOPT_TIMERFUNCTION, t_cb);
+            curl_multi_setopt(self->multi_handle, CURLMOPT_TIMERDATA, self);
+            Py_INCREF(obj);
+            self->t_cb = obj;
+            break;
+        default:
+            PyErr_SetString(PyExc_TypeError, "callables are not supported for this option");
+            return NULL;
+        }
+        Py_INCREF(Py_None);
+        return Py_None;
+    }
+    /* Failed to match any of the function signatures -- return error */
+error:
+    PyErr_SetString(PyExc_TypeError, "invalid arguments to setopt");
+    return NULL;
+}
+
+
+/* --------------- timeout --------------- */
+
+static PyObject *
+do_multi_timeout(CurlMultiObject *self)
+{
+    CURLMcode res;
+    long timeout;
+
+    if (check_multi_state(self, 1 | 2, "timeout") != 0) {
+        return NULL;
+    }
+
+    res = curl_multi_timeout(self->multi_handle, &timeout);
+    if (res != CURLM_OK) {
+        CURLERROR_MSG("timeout failed");
+    }
+
+    /* Return number of millisecs until timeout */
+    return Py_BuildValue("i", timeout);
+}
+
+
+/* --------------- assign --------------- */
+
+static PyObject *
+do_multi_assign(CurlMultiObject *self, PyObject *args)
+{
+    CURLMcode res;
+    curl_socket_t socket;
+    PyObject *obj;
+
+    if (!PyArg_ParseTuple(args, "iO:assign", &socket, &obj))
+        return NULL;
+    if (check_multi_state(self, 1 | 2, "assign") != 0) {
+        return NULL;
+    }
+    Py_INCREF(obj);
+
+    res = curl_multi_assign(self->multi_handle, socket, obj);
+    if (res != CURLM_OK) {
+        CURLERROR_MSG("assign failed");
+    }
+
+    Py_INCREF(Py_None);
+    return Py_None;
+}
+
+
+/* --------------- socket_all --------------- */
+
+static PyObject *
+do_multi_socket_all(CurlMultiObject *self)
+{
+    CURLMcode res;
+    int running = -1;
+
+    if (check_multi_state(self, 1 | 2, "socket_all") != 0) {
+        return NULL;
+    }
+
+    /* Release global lock and start */
+    self->state = PyThreadState_Get();
+    assert(self->state != NULL);
+    Py_BEGIN_ALLOW_THREADS
+    res = curl_multi_socket_all(self->multi_handle, &running);
+    Py_END_ALLOW_THREADS
+    self->state = NULL;
+
+    /* We assume these errors are ok, otherwise throw exception */
+    if (res != CURLM_OK && res != CURLM_CALL_MULTI_PERFORM) {
+        CURLERROR_MSG("perform failed");
+    }
+
+    /* Return a tuple with the result and the number of running handles */
+    return Py_BuildValue("(ii)", (int)res, running);
+}
+
+
+/* --------------- perform --------------- */
 
 static PyObject *
 do_multi_perform(CurlMultiObject *self)
@@ -2335,9 +2612,9 @@ do_multi_fdset(CurlMultiObject *self)
     }
 
     /* Allocate lists. */
-    if ((read_list = PyList_New(0)) == NULL) goto error;
-    if ((write_list = PyList_New(0)) == NULL) goto error;
-    if ((except_list = PyList_New(0)) == NULL) goto error;
+    if ((read_list = PyList_New((Py_ssize_t)0)) == NULL) goto error;
+    if ((write_list = PyList_New((Py_ssize_t)0)) == NULL) goto error;
+    if ((except_list = PyList_New((Py_ssize_t)0)) == NULL) goto error;
 
     /* Populate lists */
     for (fd = 0; fd < max_fd + 1; fd++) {
@@ -2394,8 +2671,8 @@ do_multi_info_read(CurlMultiObject *self, PyObject *args)
         return NULL;
     }
 
-    if ((ok_list = PyList_New(0)) == NULL) goto error;
-    if ((err_list = PyList_New(0)) == NULL) goto error;
+    if ((ok_list = PyList_New((Py_ssize_t)0)) == NULL) goto error;
+    if ((err_list = PyList_New((Py_ssize_t)0)) == NULL) goto error;
 
     /* Loop through all messages */
     while ((msg = curl_multi_info_read(self->multi_handle, &in_queue)) != NULL) {
@@ -2539,6 +2816,10 @@ static PyMethodDef curlmultiobject_methods[] = {
     {"fdset", (PyCFunction)do_multi_fdset, METH_NOARGS, co_multi_fdset_doc},
     {"info_read", (PyCFunction)do_multi_info_read, METH_VARARGS, co_multi_info_read_doc},
     {"perform", (PyCFunction)do_multi_perform, METH_NOARGS, NULL},
+    {"socket_all", (PyCFunction)do_multi_socket_all, METH_NOARGS, NULL},
+    {"setopt", (PyCFunction)do_multi_setopt, METH_VARARGS, NULL},
+    {"timeout", (PyCFunction)do_multi_timeout, METH_NOARGS, NULL},
+    {"assign", (PyCFunction)do_multi_assign, METH_VARARGS, NULL},
     {"remove_handle", (PyCFunction)do_multi_remove_handle, METH_VARARGS, NULL},
     {"select", (PyCFunction)do_multi_select, METH_VARARGS, co_multi_select_doc},
     {NULL, NULL, 0, NULL}
@@ -2793,7 +3074,7 @@ do_version_info(PyObject *dummy, PyObject *args)
     PyObject *ret = NULL;
     PyObject *protocols = NULL;
     PyObject *tmp;
-    int i;
+    Py_ssize_t i;
     int stamp = CURLVERSION_NOW;
 
     UNUSED(dummy);
@@ -2820,7 +3101,7 @@ do_version_info(PyObject *dummy, PyObject *args)
             goto error;
         PyTuple_SET_ITEM(protocols, i, tmp);
     }
-    ret = PyTuple_New(12);
+    ret = PyTuple_New((Py_ssize_t)12);
     if (ret == NULL)
         goto error;
 
@@ -3025,6 +3306,10 @@ initpycurl(void)
     insint_c(d, "IOE_UNKNOWNCMD", CURLIOE_UNKNOWNCMD);
     insint_c(d, "IOE_FAILRESTART", CURLIOE_FAILRESTART);
 
+    /* constants for ioctl callback argument values */
+    insint_c(d, "IOCMD_NOP", CURLIOCMD_NOP);
+    insint_c(d, "IOCMD_RESTARTREAD", CURLIOCMD_RESTARTREAD);
+
     /* curl_infotype: the kind of data that is passed to information_callback */
 /* XXX do we actually need curl_infotype in pycurl ??? */
     insint_c(d, "INFOTYPE_TEXT", CURLINFO_TEXT);
@@ -3036,9 +3321,81 @@ initpycurl(void)
     insint_c(d, "INFOTYPE_SSL_DATA_OUT", CURLINFO_SSL_DATA_OUT);
 
     /* CURLcode: error codes */
-/* FIXME: lots of error codes are missing */
     insint_c(d, "E_OK", CURLE_OK);
     insint_c(d, "E_UNSUPPORTED_PROTOCOL", CURLE_UNSUPPORTED_PROTOCOL);
+    insint_c(d, "E_FAILED_INIT", CURLE_FAILED_INIT);
+    insint_c(d, "E_URL_MALFORMAT", CURLE_URL_MALFORMAT);
+    insint_c(d, "E_COULDNT_RESOLVE_PROXY", CURLE_COULDNT_RESOLVE_PROXY);
+    insint_c(d, "E_COULDNT_RESOLVE_HOST", CURLE_COULDNT_RESOLVE_HOST);
+    insint_c(d, "E_COULDNT_CONNECT", CURLE_COULDNT_CONNECT);
+    insint_c(d, "E_FTP_WEIRD_SERVER_REPLY", CURLE_FTP_WEIRD_SERVER_REPLY);
+    insint_c(d, "E_FTP_ACCESS_DENIED", CURLE_FTP_ACCESS_DENIED);
+    insint_c(d, "E_FTP_WEIRD_PASS_REPLY", CURLE_FTP_WEIRD_PASS_REPLY);
+    insint_c(d, "E_FTP_WEIRD_USER_REPLY", CURLE_FTP_WEIRD_USER_REPLY);
+    insint_c(d, "E_FTP_WEIRD_PASV_REPLY", CURLE_FTP_WEIRD_PASV_REPLY);
+    insint_c(d, "E_FTP_WEIRD_227_FORMAT", CURLE_FTP_WEIRD_227_FORMAT);
+    insint_c(d, "E_FTP_CANT_GET_HOST", CURLE_FTP_CANT_GET_HOST);
+    insint_c(d, "E_FTP_CANT_RECONNECT", CURLE_FTP_CANT_RECONNECT);
+    insint_c(d, "E_FTP_COULDNT_SET_BINARY", CURLE_FTP_COULDNT_SET_BINARY);
+    insint_c(d, "E_PARTIAL_FILE", CURLE_PARTIAL_FILE);
+    insint_c(d, "E_FTP_COULDNT_RETR_FILE", CURLE_FTP_COULDNT_RETR_FILE);
+    insint_c(d, "E_FTP_WRITE_ERROR", CURLE_FTP_WRITE_ERROR);
+    insint_c(d, "E_FTP_QUOTE_ERROR", CURLE_FTP_QUOTE_ERROR);
+    insint_c(d, "E_HTTP_RETURNED_ERROR", CURLE_HTTP_RETURNED_ERROR);
+    insint_c(d, "E_WRITE_ERROR", CURLE_WRITE_ERROR);
+    insint_c(d, "E_FTP_COULDNT_STOR_FILE", CURLE_FTP_COULDNT_STOR_FILE);
+    insint_c(d, "E_READ_ERROR", CURLE_READ_ERROR);
+    insint_c(d, "E_OUT_OF_MEMORY", CURLE_OUT_OF_MEMORY);
+    insint_c(d, "E_OPERATION_TIMEOUTED", CURLE_OPERATION_TIMEOUTED);
+    insint_c(d, "E_FTP_COULDNT_SET_ASCII", CURLE_FTP_COULDNT_SET_ASCII);
+    insint_c(d, "E_FTP_PORT_FAILED", CURLE_FTP_PORT_FAILED);
+    insint_c(d, "E_FTP_COULDNT_USE_REST", CURLE_FTP_COULDNT_USE_REST);
+    insint_c(d, "E_FTP_COULDNT_GET_SIZE", CURLE_FTP_COULDNT_GET_SIZE);
+    insint_c(d, "E_HTTP_RANGE_ERROR", CURLE_HTTP_RANGE_ERROR);
+    insint_c(d, "E_HTTP_POST_ERROR", CURLE_HTTP_POST_ERROR);
+    insint_c(d, "E_SSL_CONNECT_ERROR", CURLE_SSL_CONNECT_ERROR);
+    insint_c(d, "E_BAD_DOWNLOAD_RESUME", CURLE_BAD_DOWNLOAD_RESUME);
+    insint_c(d, "E_FILE_COULDNT_READ_FILE", CURLE_FILE_COULDNT_READ_FILE);
+    insint_c(d, "E_LDAP_CANNOT_BIND", CURLE_LDAP_CANNOT_BIND);
+    insint_c(d, "E_LDAP_SEARCH_FAILED", CURLE_LDAP_SEARCH_FAILED);
+    insint_c(d, "E_LIBRARY_NOT_FOUND", CURLE_LIBRARY_NOT_FOUND);
+    insint_c(d, "E_FUNCTION_NOT_FOUND", CURLE_FUNCTION_NOT_FOUND);
+    insint_c(d, "E_ABORTED_BY_CALLBACK", CURLE_ABORTED_BY_CALLBACK);
+    insint_c(d, "E_BAD_FUNCTION_ARGUMENT", CURLE_BAD_FUNCTION_ARGUMENT);
+    insint_c(d, "E_INTERFACE_FAILED", CURLE_INTERFACE_FAILED);
+    insint_c(d, "E_TOO_MANY_REDIRECTS", CURLE_TOO_MANY_REDIRECTS);
+    insint_c(d, "E_UNKNOWN_TELNET_OPTION", CURLE_UNKNOWN_TELNET_OPTION);
+    insint_c(d, "E_TELNET_OPTION_SYNTAX", CURLE_TELNET_OPTION_SYNTAX);
+    insint_c(d, "E_SSL_PEER_CERTIFICATE", CURLE_SSL_PEER_CERTIFICATE);
+    insint_c(d, "E_GOT_NOTHING", CURLE_GOT_NOTHING);
+    insint_c(d, "E_SSL_ENGINE_NOTFOUND", CURLE_SSL_ENGINE_NOTFOUND);
+    insint_c(d, "E_SSL_ENGINE_SETFAILED", CURLE_SSL_ENGINE_SETFAILED);
+    insint_c(d, "E_SEND_ERROR", CURLE_SEND_ERROR);
+    insint_c(d, "E_RECV_ERROR", CURLE_RECV_ERROR);
+    insint_c(d, "E_SHARE_IN_USE", CURLE_SHARE_IN_USE);
+    insint_c(d, "E_SSL_CERTPROBLEM", CURLE_SSL_CERTPROBLEM);
+    insint_c(d, "E_SSL_CIPHER", CURLE_SSL_CIPHER);
+    insint_c(d, "E_SSL_CACERT", CURLE_SSL_CACERT);
+    insint_c(d, "E_BAD_CONTENT_ENCODING", CURLE_BAD_CONTENT_ENCODING);
+    insint_c(d, "E_LDAP_INVALID_URL", CURLE_LDAP_INVALID_URL);
+    insint_c(d, "E_FILESIZE_EXCEEDED", CURLE_FILESIZE_EXCEEDED);
+    insint_c(d, "E_FTP_SSL_FAILED", CURLE_FTP_SSL_FAILED);
+    insint_c(d, "E_SEND_FAIL_REWIND", CURLE_SEND_FAIL_REWIND);
+    insint_c(d, "E_SSL_ENGINE_INITFAILED", CURLE_SSL_ENGINE_INITFAILED);
+    insint_c(d, "E_LOGIN_DENIED", CURLE_LOGIN_DENIED);
+    insint_c(d, "E_TFTP_NOTFOUND", CURLE_TFTP_NOTFOUND);
+    insint_c(d, "E_TFTP_PERM", CURLE_TFTP_PERM);
+    insint_c(d, "E_TFTP_DISKFULL",CURLE_TFTP_DISKFULL );
+    insint_c(d, "E_TFTP_ILLEGAL",CURLE_TFTP_ILLEGAL );
+    insint_c(d, "E_TFTP_UNKNOWNID",CURLE_TFTP_UNKNOWNID );
+    insint_c(d, "E_TFTP_EXISTS", CURLE_TFTP_EXISTS);
+    insint_c(d, "E_TFTP_NOSUCHUSER",CURLE_TFTP_NOSUCHUSER );
+    insint_c(d, "E_CONV_FAILED",CURLE_CONV_FAILED );
+    insint_c(d, "E_CONV_REQD",CURLE_CONV_REQD );
+    insint_c(d, "E_SSL_CACERT_BADFILE", CURLE_SSL_CACERT_BADFILE);
+    insint_c(d, "E_REMOTE_FILE_NOT_FOUND",CURLE_REMOTE_FILE_NOT_FOUND );
+    insint_c(d, "E_SSH",CURLE_SSH );
+    insint_c(d, "E_SSL_SHUTDOWN_FAILED",CURLE_SSL_SHUTDOWN_FAILED );
 
     /* curl_proxytype: constants for setopt(PROXYTYPE, x) */
     insint_c(d, "PROXYTYPE_HTTP", CURLPROXY_HTTP);
@@ -3071,8 +3428,14 @@ initpycurl(void)
     insint_c(d, "FORM_CONTENTTYPE", CURLFORM_CONTENTTYPE);
     insint_c(d, "FORM_FILENAME", CURLFORM_FILENAME);
 
+    /* FTP_FILEMETHOD options */
+    insint_c(d, "FTPMETHOD_DEFAULT", CURLFTPMETHOD_DEFAULT);
+    insint_c(d, "FTPMETHOD_MULTICWD", CURLFTPMETHOD_MULTICWD);
+    insint_c(d, "FTPMETHOD_NOCWD", CURLFTPMETHOD_NOCWD);
+    insint_c(d, "FTPMETHOD_SINGLECWD", CURLFTPMETHOD_SINGLECWD);
+
     /* CURLoption: symbolic constants for setopt() */
-/* FIXME: reorder these to match <curl/curl.h> */
+    /* FIXME: reorder these to match <curl/curl.h> */
     insint_c(d, "FILE", CURLOPT_WRITEDATA);
     insint_c(d, "URL", CURLOPT_URL);
     insint_c(d, "PORT", CURLOPT_PORT);
@@ -3137,7 +3500,6 @@ initpycurl(void)
     insint_c(d, "OPT_FILETIME", CURLOPT_FILETIME);
     insint_c(d, "MAXREDIRS", CURLOPT_MAXREDIRS);
     insint_c(d, "MAXCONNECTS", CURLOPT_MAXCONNECTS);
-    insint_c(d, "CLOSEPOLICY", CURLOPT_CLOSEPOLICY);
     insint_c(d, "FRESH_CONNECT", CURLOPT_FRESH_CONNECT);
     insint_c(d, "FORBID_REUSE", CURLOPT_FORBID_REUSE);
     insint_c(d, "RANDOM_FILE", CURLOPT_RANDOM_FILE);
@@ -3179,24 +3541,33 @@ initpycurl(void)
     insint_c(d, "FTP_SSL", CURLOPT_FTP_SSL);
     insint_c(d, "POSTFIELDSIZE_LARGE", CURLOPT_POSTFIELDSIZE_LARGE);
     insint_c(d, "TCP_NODELAY", CURLOPT_TCP_NODELAY);
-    insint_c(d, "SOURCE_USERPWD", CURLOPT_SOURCE_USERPWD);
-    insint_c(d, "SOURCE_PREQUOTE", CURLOPT_SOURCE_PREQUOTE);
-    insint_c(d, "SOURCE_POSTQUOTE", CURLOPT_SOURCE_POSTQUOTE);
     insint_c(d, "FTPSSLAUTH", CURLOPT_FTPSSLAUTH);
     insint_c(d, "IOCTLFUNCTION", CURLOPT_IOCTLFUNCTION);
     insint_c(d, "IOCTLDATA", CURLOPT_IOCTLDATA);
-    insint_c(d, "SOURCE_URL", CURLOPT_SOURCE_URL);
-    insint_c(d, "SOURCE_QUOTE", CURLOPT_SOURCE_QUOTE);
     insint_c(d, "FTP_ACCOUNT", CURLOPT_FTP_ACCOUNT);
     insint_c(d, "IGNORE_CONTENT_LENGTH", CURLOPT_IGNORE_CONTENT_LENGTH);
     insint_c(d, "COOKIELIST", CURLOPT_COOKIELIST);
     insint_c(d, "FTP_SKIP_PASV_IP", CURLOPT_FTP_SKIP_PASV_IP);
+    insint_c(d, "FTP_FILEMETHOD", CURLOPT_FTP_FILEMETHOD);
     insint_c(d, "CONNECT_ONLY", CURLOPT_CONNECT_ONLY);
     insint_c(d, "LOCALPORT", CURLOPT_LOCALPORT);
     insint_c(d, "LOCALPORTRANGE", CURLOPT_LOCALPORTRANGE);
     insint_c(d, "FTP_ALTERNATIVE_TO_USER", CURLOPT_FTP_ALTERNATIVE_TO_USER);
     insint_c(d, "MAX_SEND_SPEED_LARGE", CURLOPT_MAX_SEND_SPEED_LARGE);
     insint_c(d, "MAX_RECV_SPEED_LARGE", CURLOPT_MAX_RECV_SPEED_LARGE);
+    insint_c(d, "SSL_SESSIONID_CACHE", CURLOPT_SSL_SESSIONID_CACHE);
+    insint_c(d, "SSH_AUTH_TYPES", CURLOPT_SSH_AUTH_TYPES);
+    insint_c(d, "SSH_PUBLIC_KEYFILE", CURLOPT_SSH_PUBLIC_KEYFILE);
+    insint_c(d, "SSH_PRIVATE_KEYFILE", CURLOPT_SSH_PRIVATE_KEYFILE);
+    insint_c(d, "FTP_SSL_CCC", CURLOPT_FTP_SSL_CCC);
+    insint_c(d, "TIMEOUT_MS", CURLOPT_TIMEOUT_MS);
+    insint_c(d, "CONNECTTIMEOUT_MS", CURLOPT_CONNECTTIMEOUT_MS);
+    insint_c(d, "HTTP_TRANSFER_DECODING", CURLOPT_HTTP_TRANSFER_DECODING);
+    insint_c(d, "HTTP_CONTENT_DECODING", CURLOPT_HTTP_CONTENT_DECODING);
+
+    insint_c(d, "M_TIMERFUNCTION", CURLMOPT_TIMERFUNCTION);
+    insint_c(d, "M_SOCKETFUNCTION", CURLMOPT_SOCKETFUNCTION);
+    insint_c(d, "M_PIPELINING", CURLMOPT_PIPELINING);
 
     /* constants for setopt(IPRESOLVE, x) */
     insint_c(d, "IPRESOLVE_WHATEVER", CURL_IPRESOLVE_WHATEVER);
@@ -3225,6 +3596,15 @@ initpycurl(void)
     insint_c(d, "TIMECONDITION_IFMODSINCE", CURL_TIMECOND_IFMODSINCE);
     insint_c(d, "TIMECONDITION_IFUNMODSINCE", CURL_TIMECOND_IFUNMODSINCE);
     insint_c(d, "TIMECONDITION_LASTMOD", CURL_TIMECOND_LASTMOD);
+
+    /* constants for setopt(CURLOPT_SSH_AUTH_TYPES, x) */
+    insint_c(d, "SSH_AUTH_ANY", CURLSSH_AUTH_ANY);
+    insint_c(d, "SSH_AUTH_NONE", CURLSSH_AUTH_NONE);
+    insint_c(d, "SSH_AUTH_PUBLICKEY", CURLSSH_AUTH_PUBLICKEY);
+    insint_c(d, "SSH_AUTH_PASSWORD", CURLSSH_AUTH_PASSWORD);
+    insint_c(d, "SSH_AUTH_HOST", CURLSSH_AUTH_HOST);
+    insint_c(d, "SSH_AUTH_KEYBOARD", CURLSSH_AUTH_KEYBOARD);
+    insint_c(d, "SSH_AUTH_DEFAULT", CURLSSH_AUTH_DEFAULT);
 
     /* CURLINFO: symbolic constants for getinfo(x) */
     insint_c(d, "EFFECTIVE_URL", CURLINFO_EFFECTIVE_URL);
@@ -3257,13 +3637,6 @@ initpycurl(void)
     insint_c(d, "INFO_COOKIELIST", CURLINFO_COOKIELIST);
     insint_c(d, "LASTSOCKET", CURLINFO_LASTSOCKET);
     insint_c(d, "FTP_ENTRY_PATH", CURLINFO_FTP_ENTRY_PATH);
-
-    /* curl_closepolicy: constants for setopt(CLOSEPOLICY, x) */
-    insint_c(d, "CLOSEPOLICY_OLDEST", CURLCLOSEPOLICY_OLDEST);
-    insint_c(d, "CLOSEPOLICY_LEAST_RECENTLY_USED", CURLCLOSEPOLICY_LEAST_RECENTLY_USED);
-    insint_c(d, "CLOSEPOLICY_LEAST_TRAFFIC", CURLCLOSEPOLICY_LEAST_TRAFFIC);
-    insint_c(d, "CLOSEPOLICY_SLOWEST", CURLCLOSEPOLICY_SLOWEST);
-    insint_c(d, "CLOSEPOLICY_CALLBACK", CURLCLOSEPOLICY_CALLBACK);
 
     /* options for global_init() */
     insint(d, "GLOBAL_SSL", CURL_GLOBAL_SSL);

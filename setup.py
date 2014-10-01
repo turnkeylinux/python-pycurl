@@ -1,13 +1,13 @@
 #! /usr/bin/env python
 # -*- coding: iso-8859-1 -*-
 # vi:ts=4:et
-# $Id: setup.py,v 1.136 2006/08/10 11:41:16 kjetilja Exp $
+# $Id: setup.py,v 1.141 2007/04/23 17:22:55 kjetilja Exp $
 
 """Setup script for the PycURL module distribution."""
 
 PACKAGE = "pycurl"
 PY_PACKAGE = "curl"
-VERSION = "7.15.5"
+VERSION = "7.16.2.1"
 
 import glob, os, re, sys, string
 import distutils
@@ -180,9 +180,9 @@ setup_args = get_kw(
     version=VERSION,
     description="PycURL -- cURL library module for Python",
     author="Kjetil Jacobsen, Markus F.X.J. Oberhumer",
-    author_email="kjetilja@gmail.com, markus@oberhumer.com",
+    author_email="kjetilja at gmail.com, markus at oberhumer.com",
     maintainer="Kjetil Jacobsen, Markus F.X.J. Oberhumer",
-    maintainer_email="kjetilja@gmail.com, markus@oberhumer.com",
+    maintainer_email="kjetilja at gmail.com, markus at oberhumer.com",
     url="http://pycurl.sourceforge.net/",
     license="GNU Lesser General Public License (LGPL)",
     data_files=get_data_files(),

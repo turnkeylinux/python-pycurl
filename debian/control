@@ -3,13 +3,13 @@ Section: python
 Priority: extra
 Maintainer: Domenico Andreoli <cavok@debian.org>
 Uploaders: Matthias Klose <doko@debian.org>
-Build-Depends: debhelper (>= 5.0.37.1), python-all-dev (>= 2.3.5-9), libcurl3-gnutls-dev (>= 7.15.4-1)
+Build-Depends: debhelper (>= 5.0.37.1), python-all-dev (>= 2.3.5-9), python-central, libcurl4-gnutls-dev (>= 7.16.2-1)
 Standards-Version: 3.7.2
 XS-Python-Version: all
 
 Package: python-pycurl
 Architecture: any
-Suggests: libcurl3-gnutls-dev
+Suggests: libcurl4-gnutls-dev
 Depends: ${shlibs:Depends}, ${python:Depends}
 Conflicts: python2.3-pycurl, python2.4-pycurl
 Replaces: python2.3-pycurl, python2.4-pycurl

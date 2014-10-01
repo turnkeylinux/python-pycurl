@@ -1,4 +1,4 @@
-/* $Id: pycurl.c,v 1.147 2008/09/09 17:40:34 kjetilja Exp $ */
+/* $Id: pycurl.c,v 1.150 2010/10/13 15:53:40 zanee Exp $ */
 
 /* PycURL -- cURL Python module
  *
@@ -97,12 +97,6 @@ static void pycurl_ssl_cleanup(void);
 /* Calculate the number of OBJECTPOINT options we need to store */
 #define OPTIONS_SIZE    ((int)CURLOPT_LASTENTRY % 10000)
 #define MOPTIONS_SIZE   ((int)CURLMOPT_LASTENTRY % 10000)
-static int OPT_INDEX(int o)
-{
-    assert(o >= CURLOPTTYPE_OBJECTPOINT);
-    assert(o < CURLOPTTYPE_OBJECTPOINT + OPTIONS_SIZE);
-    return o - CURLOPTTYPE_OBJECTPOINT;
-}
 
 /* Type objects */
 static PyObject *ErrorObject = NULL;
@@ -156,12 +150,12 @@ typedef struct {
     PyObject *debug_cb;
     PyObject *ioctl_cb;
     PyObject *opensocket_cb;
+    PyObject *seek_cb;
     /* file objects */
     PyObject *readdata_fp;
     PyObject *writedata_fp;
     PyObject *writeheader_fp;
     /* misc */
-    void *options[OPTIONS_SIZE];    /* for OBJECTPOINT options */
     char error[CURL_ERROR_SIZE+1];
 } CurlObject;
 
@@ -734,6 +728,7 @@ util_curl_new(void)
     self->debug_cb = NULL;
     self->ioctl_cb = NULL;
     self->opensocket_cb = NULL;
+    self->seek_cb = NULL;
 
     /* Set file object pointers to NULL by default */
     self->readdata_fp = NULL;
@@ -741,12 +736,62 @@ util_curl_new(void)
     self->writeheader_fp = NULL;
 
     /* Zero string pointer memory buffer used by setopt */
-    memset(self->options, 0, sizeof(self->options));
     memset(self->error, 0, sizeof(self->error));
 
     return self;
 }
 
+/* initializer - used to intialize curl easy handles for use with pycurl */
+static int
+util_curl_init(CurlObject *self)
+{
+    int res;
+    char *s = NULL;
+
+    /* Set curl error buffer and zero it */
+    res = curl_easy_setopt(self->handle, CURLOPT_ERRORBUFFER, self->error);
+    if (res != CURLE_OK) {
+        return (-1);
+    }
+    memset(self->error, 0, sizeof(self->error));
+
+    /* Set backreference */
+    res = curl_easy_setopt(self->handle, CURLOPT_PRIVATE, (char *) self);
+    if (res != CURLE_OK) {
+        return (-1);
+    }
+
+    /* Enable NOPROGRESS by default, i.e. no progress output */
+    res = curl_easy_setopt(self->handle, CURLOPT_NOPROGRESS, (long)1);
+    if (res != CURLE_OK) {
+        return (-1);
+    }
+
+    /* Disable VERBOSE by default, i.e. no verbose output */
+    res = curl_easy_setopt(self->handle, CURLOPT_VERBOSE, (long)0);
+    if (res != CURLE_OK) {
+        return (-1);
+    }
+
+    /* Set FTP_ACCOUNT to NULL by default */
+    res = curl_easy_setopt(self->handle, CURLOPT_FTP_ACCOUNT, NULL);
+    if (res != CURLE_OK) {
+        return (-1);
+    }
+
+    /* Set default USERAGENT */
+    s = (char *) malloc(7 + strlen(LIBCURL_VERSION) + 1);
+    if (s == NULL) {
+        return (-1);
+    }
+    strcpy(s, "PycURL/"); strcpy(s+7, LIBCURL_VERSION);
+    res = curl_easy_setopt(self->handle, CURLOPT_USERAGENT, (char *) s);
+    if (res != CURLE_OK) {
+        free(s);
+        return (-1);
+    }
+    return (0);
+}
 
 /* constructor - this is a module-level function returning a new instance */
 static CurlObject *
@@ -754,7 +799,6 @@ do_curl_new(PyObject *dummy)
 {
     CurlObject *self = NULL;
     int res;
-    char *s = NULL;
 
     UNUSED(dummy);
 
@@ -768,44 +812,9 @@ do_curl_new(PyObject *dummy)
     if (self->handle == NULL)
         goto error;
 
-    /* Set curl error buffer and zero it */
-    res = curl_easy_setopt(self->handle, CURLOPT_ERRORBUFFER, self->error);
-    if (res != CURLE_OK)
-        goto error;
-    memset(self->error, 0, sizeof(self->error));
-
-    /* Set backreference */
-    res = curl_easy_setopt(self->handle, CURLOPT_PRIVATE, (char *) self);
-    if (res != CURLE_OK)
-        goto error;
-
-    /* Enable NOPROGRESS by default, i.e. no progress output */
-    res = curl_easy_setopt(self->handle, CURLOPT_NOPROGRESS, (long)1);
-    if (res != CURLE_OK)
-        goto error;
-
-    /* Disable VERBOSE by default, i.e. no verbose output */
-    res = curl_easy_setopt(self->handle, CURLOPT_VERBOSE, (long)0);
-    if (res != CURLE_OK)
-        goto error;
-
-    /* Set FTP_ACCOUNT to NULL by default */
-    res = curl_easy_setopt(self->handle, CURLOPT_FTP_ACCOUNT, NULL);
-    if (res != CURLE_OK)
-        goto error;
-
-    /* Set default USERAGENT */
-    s = (char *) malloc(7 + strlen(LIBCURL_VERSION) + 1);
-    if (s == NULL)
-        goto error;
-    strcpy(s, "PycURL/"); strcpy(s+7, LIBCURL_VERSION);
-    res = curl_easy_setopt(self->handle, CURLOPT_USERAGENT, (char *) s);
-    if (res != CURLE_OK) {
-        free(s);
-        goto error;
-    }
-    self->options[ OPT_INDEX(CURLOPT_USERAGENT) ] = s; s = NULL;
-
+    res = util_curl_init(self);
+    if (res < 0)
+            goto error;
     /* Success - return new object */
     return self;
 
@@ -872,7 +881,6 @@ static void
 util_curl_close(CurlObject *self)
 {
     CURL *handle;
-    int i;
 
     /* Zero handle and thread-state to disallow any operations to be run
      * from now on */
@@ -916,16 +924,6 @@ util_curl_close(CurlObject *self)
     SFREE(self->postquote);
     SFREE(self->prequote);
 #undef SFREE
-
-    /* Last, free the options.  This must be done after the curl handle
-     * is closed since libcurl assumes that some options are valid when
-     * invoking curl_easy_cleanup(). */
-    for (i = 0; i < OPTIONS_SIZE; i++) {
-        if (self->options[i] != NULL) {
-            free(self->options[i]);
-            self->options[i] = NULL;
-        }
-    }
 }
 
 
@@ -1185,6 +1183,82 @@ verbose_error:
     goto silent_error;
 }
 
+static int
+seek_callback(void *stream, curl_off_t offset, int origin)
+{
+    CurlObject *self;
+    PyThreadState *tmp_state;
+    PyObject *arglist;
+    PyObject *result = NULL;
+    int ret = 2;     /* assume error 2 (can't seek, libcurl free to work around). */
+    PyObject *cb;
+    int source = 0;     /* assume beginning */
+
+    /* acquire thread */
+    self = (CurlObject *)stream;
+    tmp_state = get_thread_state(self);
+    if (tmp_state == NULL)
+        return ret;
+    PyEval_AcquireThread(tmp_state);
+
+    /* check arguments */
+    switch (origin)
+    {
+      case SEEK_SET:
+          source = 0;
+          break;
+      case SEEK_CUR:
+          source = 1;
+          break;
+      case SEEK_END:
+          source = 2;
+          break;
+      default:
+          source = origin;
+          break;
+    }
+    
+    /* run callback */
+    cb = self->seek_cb;
+    if (cb == NULL)
+        goto silent_error;
+    arglist = Py_BuildValue("(i,i)", offset, source);
+    if (arglist == NULL)
+        goto verbose_error;
+    result = PyEval_CallObject(cb, arglist);
+    Py_DECREF(arglist);
+    if (result == NULL)
+        goto verbose_error;
+
+    /* handle result */
+    if (result == Py_None) {
+        ret = 0;           /* None means success */
+    }
+    else if (PyInt_Check(result)) {
+        int ret_code = PyInt_AsLong(result);
+        if (ret_code < 0 || ret_code > 2) {
+            PyErr_Format(ErrorObject, "invalid return value for seek callback %d not in (0, 1, 2)", ret_code);
+            goto verbose_error;
+        }
+        ret = ret_code;    /* pass the return code from the callback */
+    }
+    else {
+        PyErr_SetString(ErrorObject, "seek callback must return 0 (CURL_SEEKFUNC_OK), 1 (CURL_SEEKFUNC_FAIL), 2 (CURL_SEEKFUNC_CANTSEEK) or None");
+        goto verbose_error;
+    }
+
+silent_error:
+    Py_XDECREF(result);
+    PyEval_ReleaseThread(tmp_state);
+    return ret;
+verbose_error:
+    PyErr_Print();
+    goto silent_error;
+}
+
+
+
+
 static size_t
 read_callback(char *ptr, size_t size, size_t nmemb, void *stream)
 {
@@ -1424,7 +1498,7 @@ verbose_error:
 static PyObject*
 do_curl_reset(CurlObject *self)
 {
-    unsigned int i;
+    int res;
 
     curl_easy_reset(self->handle);
 
@@ -1443,25 +1517,24 @@ do_curl_reset(CurlObject *self)
     SFREE(self->postquote);
     SFREE(self->prequote);
 #undef SFREE
-
-    /* Last, free the options */
-    for (i = 0; i < OPTIONS_SIZE; i++) {
-        if (self->options[i] != NULL) {
-            free(self->options[i]);
-            self->options[i] = NULL;
-        }
+    res = util_curl_init(self);
+    if (res < 0) {
+        Py_DECREF(self);    /* this also closes self->handle */
+        PyErr_SetString(ErrorObject, "resetting curl failed");
+        return NULL;
     }
 
+    Py_INCREF(Py_None);
     return Py_None;
 }
 
 /* --------------- unsetopt/setopt/getinfo --------------- */
+    int res;
 
 static PyObject *
 util_curl_unsetopt(CurlObject *self, int option)
 {
     int res;
-    int opt_index = -1;
 
 #define SETOPT2(o,x) \
     if ((res = curl_easy_setopt(self->handle, (o), (x))) != CURLE_OK) goto error
@@ -1502,7 +1575,6 @@ util_curl_unsetopt(CurlObject *self, int option)
     case CURLOPT_SSL_CIPHER_LIST:
     case CURLOPT_USERPWD:
         SETOPT((char *) 0);
-        opt_index = OPT_INDEX(option);
         break;
 
     /* info: we explicitly list unsupported options here */
@@ -1510,11 +1582,6 @@ util_curl_unsetopt(CurlObject *self, int option)
     default:
         PyErr_SetString(PyExc_TypeError, "unsetopt() is not supported for this option");
         return NULL;
-    }
-
-    if (opt_index >= 0 && self->options[opt_index] != NULL) {
-        free(self->options[opt_index]);
-        self->options[opt_index] = NULL;
     }
 
     Py_INCREF(Py_None);
@@ -1587,8 +1654,6 @@ do_curl_setopt(CurlObject *self, PyObject *args)
     if (PyString_Check(obj)) {
         char *str = NULL;
         Py_ssize_t len = -1;
-        char *buf;
-        int opt_index;
 
         /* Check that the option specified a string as well as the input */
         switch (option) {
@@ -1651,28 +1716,12 @@ do_curl_setopt(CurlObject *self, PyObject *args)
         }
         /* Allocate memory to hold the string */
         assert(str != NULL);
-        if (len <= 0)
-            buf = strdup(str);
-        else {
-            buf = (char *) malloc(len);
-            if (buf) memcpy(buf, str, len);
-        }
-        if (buf == NULL)
-            return PyErr_NoMemory();
         /* Call setopt */
-        res = curl_easy_setopt(self->handle, (CURLoption)option, buf);
+        res = curl_easy_setopt(self->handle, (CURLoption)option, str);
         /* Check for errors */
         if (res != CURLE_OK) {
-            free(buf);
             CURLERROR_RETVAL();
         }
-        /* Save allocated option buffer */
-        opt_index = OPT_INDEX(option);
-        if (self->options[opt_index] != NULL) {
-            free(self->options[opt_index]);
-            self->options[opt_index] = NULL;
-        }
-        self->options[opt_index] = buf;
         Py_INCREF(Py_None);
         return Py_None;
     }
@@ -2017,7 +2066,8 @@ do_curl_setopt(CurlObject *self, PyObject *args)
         const curl_progress_callback pro_cb = progress_callback;
         const curl_debug_callback debug_cb = debug_callback;
         const curl_ioctl_callback ioctl_cb = ioctl_callback;
-	const curl_opensocket_callback opensocket_cb = opensocket_callback;
+        const curl_opensocket_callback opensocket_cb = opensocket_callback;
+        const curl_seek_callback seek_cb = seek_callback;
 
         switch(option) {
         case CURLOPT_WRITEFUNCTION:
@@ -2074,6 +2124,13 @@ do_curl_setopt(CurlObject *self, PyObject *args)
             self->opensocket_cb = obj;
             curl_easy_setopt(self->handle, CURLOPT_OPENSOCKETFUNCTION, opensocket_cb);
             curl_easy_setopt(self->handle, CURLOPT_OPENSOCKETDATA, self);
+            break;
+        case CURLOPT_SEEKFUNCTION:
+            Py_INCREF(obj);
+            ZAP(self->seek_cb);
+            self->seek_cb = obj;
+            curl_easy_setopt(self->handle, CURLOPT_SEEKFUNCTION, seek_cb);
+            curl_easy_setopt(self->handle, CURLOPT_SEEKDATA, self);
             break;
 
         default:
@@ -3645,6 +3702,7 @@ initpycurl(void)
     insint_c(d, "PREQUOTE", CURLOPT_PREQUOTE);
     insint_c(d, "WRITEHEADER", CURLOPT_WRITEHEADER);
     insint_c(d, "HEADERFUNCTION", CURLOPT_HEADERFUNCTION);
+    insint_c(d, "SEEKFUNCTION", CURLOPT_SEEKFUNCTION);
     insint_c(d, "COOKIEFILE", CURLOPT_COOKIEFILE);
     insint_c(d, "SSLVERSION", CURLOPT_SSLVERSION);
     insint_c(d, "TIMECONDITION", CURLOPT_TIMECONDITION);

@@ -1,3 +1,20 @@
+pycurl (7.19.0-6) experimental; urgency=low
+
+  * debian/patches/20_remove_string_options.patch
+    - No longer keep copies of string options since this is managed by libcurl,
+      needed to have pycurl.c in sync with upstream CVS, and apply further
+      patches
+  * debian/patches/30_fix_refcounts_calling_reset_twice.patch
+    - Fixes refcount bug and provides better organization of PyCurl object,
+      allowing to call reset() multiple time; thansk to Emmanuel Bouthenot for
+      the report; Closes: #690187
+  * debian/patches/40_add_CURLOPT_SEEKFUNCTION_and_CURLOPT_SEEKDATA.patch
+    - Added CURLOPT_SEEKFUNCTION, CURLOPT_SEEKDATA
+  * debian/control
+    - bump Standards-Version t0 3.9.3 (no changes needed)
+
+ -- Sandro Tosi <morph@debian.org>  Sun, 28 Oct 2012 11:20:44 +0100
+
 pycurl (7.19.0-5) unstable; urgency=low
 
   * debian/rules

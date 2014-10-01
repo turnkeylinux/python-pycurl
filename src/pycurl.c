@@ -1,4 +1,4 @@
-/* $Id: pycurl.c,v 1.74 2005/02/10 10:17:15 kjetilja Exp $ */
+/* $Id: pycurl.c,v 1.86 2005/03/04 08:39:30 kjetilja Exp $ */
 
 /* PycURL -- cURL Python module
  *
@@ -48,8 +48,8 @@
 #if !defined(PY_VERSION_HEX) || (PY_VERSION_HEX < 0x02020000)
 #  error "Need Python version 2.2 or greater to compile pycurl."
 #endif
-#if !defined(LIBCURL_VERSION_NUM) || (LIBCURL_VERSION_NUM < 0x070d00)
-#  error "Need libcurl version 7.13.0 or greater to compile pycurl."
+#if !defined(LIBCURL_VERSION_NUM) || (LIBCURL_VERSION_NUM < 0x070d01)
+#  error "Need libcurl version 7.13.1 or greater to compile pycurl."
 #endif
 
 #undef UNUSED
@@ -345,15 +345,13 @@ util_curl_new(void)
 
 /* constructor - this is a module-level function returning a new instance */
 static CurlObject *
-do_curl_new(PyObject *dummy, PyObject *args)
+do_curl_new(PyObject *dummy)
 {
-    CurlObject *self;
+    CurlObject *self = NULL;
     int res;
+    char *s = NULL;
 
     UNUSED(dummy);
-    if (!PyArg_ParseTuple(args, ":Curl")) {
-        return NULL;
-    }
 
     /* Allocate python curl object */
     self = util_curl_new();
@@ -371,6 +369,11 @@ do_curl_new(PyObject *dummy, PyObject *args)
         goto error;
     memset(self->error, 0, sizeof(self->error));
 
+    /* Set backreference */
+    res = curl_easy_setopt(self->handle, CURLOPT_PRIVATE, (char *) self);
+    if (res != CURLE_OK)
+        goto error;
+
     /* Enable NOPROGRESS by default, i.e. no progress output */
     res = curl_easy_setopt(self->handle, CURLOPT_NOPROGRESS, (long)1);
     if (res != CURLE_OK)
@@ -381,15 +384,22 @@ do_curl_new(PyObject *dummy, PyObject *args)
     if (res != CURLE_OK)
         goto error;
 
-    /* Set backreference */
-    res = curl_easy_setopt(self->handle, CURLOPT_PRIVATE, (char *) self);
-    if (res != CURLE_OK)
-        goto error;
-
     /* Set FTP_ACCOUNT to NULL by default */
     res = curl_easy_setopt(self->handle, CURLOPT_FTP_ACCOUNT, NULL);
     if (res != CURLE_OK)
         goto error;
+
+    /* Set default USERAGENT */
+    s = (char *) malloc(7 + strlen(LIBCURL_VERSION) + 1);
+    if (s == NULL)
+        goto error;
+    strcpy(s, "PycURL/"); strcpy(s+7, LIBCURL_VERSION);
+    res = curl_easy_setopt(self->handle, CURLOPT_USERAGENT, (char *) s);
+    if (res != CURLE_OK) {
+        free(s);
+        goto error;
+    }
+    self->options[ OPT_INDEX(CURLOPT_USERAGENT) ] = s; s = NULL;
 
     /* Success - return new object */
     return self;
@@ -516,11 +526,8 @@ do_curl_dealloc(CurlObject *self)
 
 
 static PyObject *
-do_curl_close(CurlObject *self, PyObject *args)
+do_curl_close(CurlObject *self)
 {
-    if (!PyArg_ParseTuple(args, ":close")) {
-        return NULL;
-    }
     if (check_curl_state(self, 2, "close") != 0) {
         return NULL;
     }
@@ -531,11 +538,8 @@ do_curl_close(CurlObject *self, PyObject *args)
 
 
 static PyObject *
-do_curl_errstr(CurlObject *self, PyObject *args)
+do_curl_errstr(CurlObject *self)
 {
-    if (!PyArg_ParseTuple(args, ":errstr")) {
-        return NULL;
-    }
     if (check_curl_state(self, 1 | 2, "errstr") != 0) {
         return NULL;
     }
@@ -585,13 +589,10 @@ do_curl_traverse(CurlObject *self, visitproc visit, void *arg)
 /* --------------- perform --------------- */
 
 static PyObject *
-do_curl_perform(CurlObject *self, PyObject *args)
+do_curl_perform(CurlObject *self)
 {
     int res;
 
-    if (!PyArg_ParseTuple(args, ":perform")) {
-        return NULL;
-    }
     if (check_curl_state(self, 1 | 2, "perform") != 0) {
         return NULL;
     }
@@ -761,7 +762,22 @@ read_callback(char *ptr, size_t size, size_t nmemb, void *stream)
         memcpy(ptr, buf, obj_size);
         ret = obj_size;             /* success */
     }
+    else if (PyInt_Check(result)) {
+        long r = PyInt_AsLong(result);
+        if (r != CURL_READFUNC_ABORT) {
+            goto type_error;
+        }
+        /* ret is CURL_READUNC_ABORT */
+    }
+    else if (PyLong_Check(result)) {
+        long r = PyLong_AsLong(result);
+        if (r != CURL_READFUNC_ABORT) {
+            goto type_error;
+        }
+        /* ret is CURL_READUNC_ABORT */
+    }
     else {
+    type_error:
         PyErr_SetString(ErrorObject, "read callback must return string");
         goto verbose_error;
     }
@@ -891,7 +907,7 @@ ioctl_callback(CURL *curlobj, int cmd, void *stream)
     self = (CurlObject *)stream;
     tmp_state = get_thread_state(self);
     if (tmp_state == NULL)
-        return ret;
+        return (curlioerr) ret;
     PyEval_AcquireThread(tmp_state);
 
     /* check args */
@@ -922,7 +938,7 @@ ioctl_callback(CURL *curlobj, int cmd, void *stream)
 silent_error:
     Py_XDECREF(result);
     PyEval_ReleaseThread(tmp_state);
-    return ret;
+    return (curlioerr) ret;
 verbose_error:
     PyErr_Print();
     goto silent_error;
@@ -1159,7 +1175,7 @@ do_curl_setopt(CurlObject *self, PyObject *args)
         return Py_None;
     }
 
-    /* Handle the case of long arguments (used by *LARGE options) */
+    /* Handle the case of long arguments (used by *_LARGE options) */
     if (PyLong_Check(obj)) {
         PY_LONG_LONG d = PyLong_AsLongLong(obj);
         if (d == -1 && PyErr_Occurred())
@@ -1296,27 +1312,113 @@ do_curl_setopt(CurlObject *self, PyObject *args)
                 }
                 if (PyTuple_GET_SIZE(listitem) != 2) {
                     curl_formfree(post);
-                    PyErr_SetString(PyExc_TypeError, "tuple must contain two items (name and value)");
+                    PyErr_SetString(PyExc_TypeError, "tuple must contain two elements (name, value)");
                     return NULL;
                 }
-                /* FIXME: Only support strings as names and values for now */
-                if (PyString_AsStringAndSize(PyTuple_GET_ITEM(listitem, 0), &nstr, &nlen) != 0 ||
-                    PyString_AsStringAndSize(PyTuple_GET_ITEM(listitem, 1), &cstr, &clen) != 0) {
+                if (PyString_AsStringAndSize(PyTuple_GET_ITEM(listitem, 0), &nstr, &nlen) != 0) {
                     curl_formfree(post);
-                    PyErr_SetString(PyExc_TypeError, "tuple items must be strings");
+                    PyErr_SetString(PyExc_TypeError, "tuple must contain string as first element");
                     return NULL;
                 }
-                /* INFO: curl_formadd() internally does memdup() the data, so
-                 * embedded NUL characters _are_ allowed here. */
-                res = curl_formadd(&post, &last,
-                                   CURLFORM_COPYNAME, nstr,
-                                   CURLFORM_NAMELENGTH, (long) nlen,
-                                   CURLFORM_COPYCONTENTS, cstr,
-                                   CURLFORM_CONTENTSLENGTH, (long) clen,
-                                   CURLFORM_END);
-                if (res != CURLE_OK) {
+                if (PyString_Check(PyTuple_GET_ITEM(listitem, 1))) {
+                    /* Handle strings as second argument for backwards compatibility */
+                    PyString_AsStringAndSize(PyTuple_GET_ITEM(listitem, 1), &cstr, &clen);
+                    /* INFO: curl_formadd() internally does memdup() the data, so
+                     * embedded NUL characters _are_ allowed here. */
+                    res = curl_formadd(&post, &last,
+                                       CURLFORM_COPYNAME, nstr,
+                                       CURLFORM_NAMELENGTH, (long) nlen,
+                                       CURLFORM_COPYCONTENTS, cstr,
+                                       CURLFORM_CONTENTSLENGTH, (long) clen,
+                                       CURLFORM_END);
+                    if (res != CURLE_OK) {
+                        curl_formfree(post);
+                        CURLERROR_RETVAL();
+                    }
+                }
+                else if (PyTuple_Check(PyTuple_GET_ITEM(listitem, 1))) {
+                    /* Supports content, file and content-type */
+                    PyObject *t = PyTuple_GET_ITEM(listitem, 1);
+                    int tlen = PyTuple_Size(t);
+                    int j, k, l;
+                    struct curl_forms *forms = NULL;
+
+                    /* Sanity check that there are at least two tuple items */
+                    if (tlen < 2) {
+                        curl_formfree(post);
+                        PyErr_SetString(PyExc_TypeError, "tuple must contain at least one option and one value");
+                        return NULL;
+                    }
+
+                    /* Allocate enough space to accommodate length options for content */
+                    forms = PyMem_Malloc(sizeof(struct curl_forms) * ((tlen*2) + 1));
+                    if (forms == NULL) {
+                        curl_formfree(post);
+                        PyErr_NoMemory();
+                        return NULL;
+                    }
+
+                    /* Iterate all the tuple members pairwise */
+                    for (j = 0, k = 0, l = 0; j < tlen; j += 2, l++) {
+                        char *ostr;
+                        int olen, val;
+
+                        if (j == (tlen-1)) {
+                            PyErr_SetString(PyExc_TypeError, "expected value");
+                            PyMem_Free(forms);
+                            curl_formfree(post);
+                            return NULL;
+                        }
+                        if (!PyInt_Check(PyTuple_GET_ITEM(t, j))) {
+                            PyErr_SetString(PyExc_TypeError, "option must be long");
+                            PyMem_Free(forms);
+                            curl_formfree(post);
+                            return NULL;
+                        }
+                        if (!PyString_Check(PyTuple_GET_ITEM(t, j+1))) {
+                            PyErr_SetString(PyExc_TypeError, "value must be string");
+                            PyMem_Free(forms);
+                            curl_formfree(post);
+                            return NULL;
+                        }
+
+                        val = PyLong_AsLong(PyTuple_GET_ITEM(t, j));
+                        if (val != CURLFORM_COPYCONTENTS &&
+                            val != CURLFORM_FILE &&
+                            val != CURLFORM_CONTENTTYPE)
+                        {
+                            PyErr_SetString(PyExc_TypeError, "unsupported option");
+                            PyMem_Free(forms);
+                            curl_formfree(post);
+                            return NULL;
+                        }
+                        PyString_AsStringAndSize(PyTuple_GET_ITEM(t, j+1), &ostr, &olen);
+                        forms[k].option = val;
+                        forms[k].value = ostr;
+                        ++k;
+                        if (val == CURLFORM_COPYCONTENTS) {
+                            /* Contents can contain \0 bytes so we specify the length */
+                            forms[k].option = CURLFORM_CONTENTSLENGTH;
+                            forms[k].value = (char *)olen;
+                            ++k;
+                        }
+                    }
+                    forms[k].option = CURLFORM_END;
+                    res = curl_formadd(&post, &last,
+                                       CURLFORM_COPYNAME, nstr,
+                                       CURLFORM_NAMELENGTH, (long) nlen,
+                                       CURLFORM_ARRAY, forms,
+                                       CURLFORM_END);
+                    PyMem_Free(forms);
+                    if (res != CURLE_OK) {
+                        curl_formfree(post);
+                        CURLERROR_RETVAL();
+                    }
+                } else {
+                    /* Some other type was given, ignore */
                     curl_formfree(post);
-                    CURLERROR_RETVAL();
+                    PyErr_SetString(PyExc_TypeError, "unsupported second type in tuple");
+                    return NULL;
                 }
             }
             res = curl_easy_setopt(self->handle, CURLOPT_HTTPPOST, post);
@@ -1558,14 +1660,11 @@ do_curl_getinfo(CurlObject *self, PyObject *args)
 
 /* constructor - this is a module-level function returning a new instance */
 static CurlMultiObject *
-do_multi_new(PyObject *dummy, PyObject *args)
+do_multi_new(PyObject *dummy)
 {
     CurlMultiObject *self;
 
     UNUSED(dummy);
-    if (!PyArg_ParseTuple(args, ":CurlMulti")) {
-        return NULL;
-    }
 
     /* Allocate python curl-multi object */
     self = (CurlMultiObject *) PyObject_GC_New(CurlMultiObject, p_CurlMulti_Type);
@@ -1619,11 +1718,8 @@ do_multi_dealloc(CurlMultiObject *self)
 
 
 static PyObject *
-do_multi_close(CurlMultiObject *self, PyObject *args)
+do_multi_close(CurlMultiObject *self)
 {
-    if (!PyArg_ParseTuple(args, ":close")) {
-        return NULL;
-    }
     if (check_multi_state(self, 2, "close") != 0) {
         return NULL;
     }
@@ -1660,14 +1756,11 @@ do_multi_traverse(CurlMultiObject *self, visitproc visit, void *arg)
 
 
 static PyObject *
-do_multi_perform(CurlMultiObject *self, PyObject *args)
+do_multi_perform(CurlMultiObject *self)
 {
     CURLMcode res;
     int running = -1;
 
-    if (!PyArg_ParseTuple(args, ":perform")) {
-        return NULL;
-    }
     if (check_multi_state(self, 1 | 2, "perform") != 0) {
         return NULL;
     }
@@ -1788,7 +1881,7 @@ done:
 /* --------------- fdset ---------------------- */
 
 static PyObject *
-do_multi_fdset(CurlMultiObject *self, PyObject *args)
+do_multi_fdset(CurlMultiObject *self)
 {
     CURLMcode res;
     int max_fd = -1, fd;
@@ -1796,9 +1889,6 @@ do_multi_fdset(CurlMultiObject *self, PyObject *args)
     PyObject *read_list = NULL, *write_list = NULL, *except_list = NULL;
     PyObject *py_fd = NULL;
 
-    if (!PyArg_ParseTuple(args, ":fdset")) {
-        return NULL;
-    }
     if (check_multi_state(self, 1 | 2, "fdset") != 0) {
         return NULL;
     }
@@ -2002,10 +2092,10 @@ static char co_multi_info_read_doc [] = "info_read([max_objects]) -> Tuple. Retu
 static char co_multi_select_doc [] = "select([timeout]) -> Int.  Returns result from doing a select() on the curl multi file descriptor with the given timeout.\n";
 
 static PyMethodDef curlobject_methods[] = {
-    {"close", (PyCFunction)do_curl_close, METH_VARARGS, co_close_doc},
-    {"errstr", (PyCFunction)do_curl_errstr, METH_VARARGS, co_errstr_doc},
+    {"close", (PyCFunction)do_curl_close, METH_NOARGS, co_close_doc},
+    {"errstr", (PyCFunction)do_curl_errstr, METH_NOARGS, co_errstr_doc},
     {"getinfo", (PyCFunction)do_curl_getinfo, METH_VARARGS, co_getinfo_doc},
-    {"perform", (PyCFunction)do_curl_perform, METH_VARARGS, co_perform_doc},
+    {"perform", (PyCFunction)do_curl_perform, METH_NOARGS, co_perform_doc},
     {"setopt", (PyCFunction)do_curl_setopt, METH_VARARGS, co_setopt_doc},
     {"unsetopt", (PyCFunction)do_curl_unsetopt, METH_VARARGS, co_unsetopt_doc},
     {NULL, NULL, 0, NULL}
@@ -2013,10 +2103,10 @@ static PyMethodDef curlobject_methods[] = {
 
 static PyMethodDef curlmultiobject_methods[] = {
     {"add_handle", (PyCFunction)do_multi_add_handle, METH_VARARGS, NULL},
-    {"close", (PyCFunction)do_multi_close, METH_VARARGS, NULL},
-    {"fdset", (PyCFunction)do_multi_fdset, METH_VARARGS, co_multi_fdset_doc},
+    {"close", (PyCFunction)do_multi_close, METH_NOARGS, NULL},
+    {"fdset", (PyCFunction)do_multi_fdset, METH_NOARGS, co_multi_fdset_doc},
     {"info_read", (PyCFunction)do_multi_info_read, METH_VARARGS, co_multi_info_read_doc},
-    {"perform", (PyCFunction)do_multi_perform, METH_VARARGS, NULL},
+    {"perform", (PyCFunction)do_multi_perform, METH_NOARGS, NULL},
     {"remove_handle", (PyCFunction)do_multi_remove_handle, METH_VARARGS, NULL},
     {"select", (PyCFunction)do_multi_select, METH_VARARGS, co_multi_select_doc},
     {NULL, NULL, 0, NULL}
@@ -2194,13 +2284,9 @@ do_global_init(PyObject *dummy, PyObject *args)
 
 
 static PyObject *
-do_global_cleanup(PyObject *dummy, PyObject *args)
+do_global_cleanup(PyObject *dummy)
 {
     UNUSED(dummy);
-    if (!PyArg_ParseTuple(args, ":global_cleanup")) {
-        return NULL;
-    }
-
     curl_global_cleanup();
     Py_INCREF(Py_None);
     return Py_None;
@@ -2301,10 +2387,10 @@ static char pycurl_multi_new_doc [] =
 /* List of functions defined in this module */
 static PyMethodDef curl_methods[] = {
     {"global_init", (PyCFunction)do_global_init, METH_VARARGS, pycurl_global_init_doc},
-    {"global_cleanup", (PyCFunction)do_global_cleanup, METH_VARARGS, pycurl_global_cleanup_doc},
+    {"global_cleanup", (PyCFunction)do_global_cleanup, METH_NOARGS, pycurl_global_cleanup_doc},
     {"version_info", (PyCFunction)do_version_info, METH_VARARGS, pycurl_version_info_doc},
-    {"Curl", (PyCFunction)do_curl_new, METH_VARARGS, pycurl_curl_new_doc},
-    {"CurlMulti", (PyCFunction)do_multi_new, METH_VARARGS, pycurl_multi_new_doc},
+    {"Curl", (PyCFunction)do_curl_new, METH_NOARGS, pycurl_curl_new_doc},
+    {"CurlMulti", (PyCFunction)do_multi_new, METH_NOARGS, pycurl_multi_new_doc},
     {NULL, NULL, 0, NULL}
 };
 
@@ -2437,6 +2523,14 @@ initpycurl(void)
      ** the order of these constants mostly follows <curl/curl.h>
      **/
 
+    /* Abort curl_read_callback(). */
+    insint_c(d, "READFUNC_ABORT", CURL_READFUNC_ABORT);
+
+    /* constants for ioctl callback return values */
+    insint_c(d, "IOE_OK", CURLIOE_OK);
+    insint_c(d, "IOE_UNKNOWNCMD", CURLIOE_UNKNOWNCMD);
+    insint_c(d, "IOE_FAILRESTART", CURLIOE_FAILRESTART);
+
     /* curl_infotype: the kind of data that is passed to information_callback */
 /* XXX do we actually need curl_infotype in pycurl ??? */
     insint_c(d, "INFOTYPE_TEXT", CURLINFO_TEXT);
@@ -2477,17 +2571,35 @@ initpycurl(void)
     insint_c(d, "FTPAUTH_SSL", CURLFTPAUTH_SSL);
     insint_c(d, "FTPAUTH_TLS", CURLFTPAUTH_TLS);
 
+    /* curl_ftpauth: constants for setopt(FTPSSLAUTH, x) */
+    insint_c(d, "FORM_CONTENTS", CURLFORM_COPYCONTENTS);
+    insint_c(d, "FORM_FILE", CURLFORM_FILE);
+    insint_c(d, "FORM_CONTENTTYPE", CURLFORM_CONTENTTYPE);
+
     /* CURLoption: symbolic constants for setopt() */
 /* FIXME: reorder these to match <curl/curl.h> */
     insint_c(d, "FILE", CURLOPT_WRITEDATA);
-    insint_c(d, "INFILE", CURLOPT_READDATA);
-    insint_c(d, "WRITEDATA", CURLOPT_WRITEDATA);
-    insint_c(d, "WRITEFUNCTION", CURLOPT_WRITEFUNCTION);
-    insint_c(d, "READDATA", CURLOPT_READDATA);
-    insint_c(d, "READFUNCTION", CURLOPT_READFUNCTION);
-    insint_c(d, "INFILESIZE", CURLOPT_INFILESIZE);
     insint_c(d, "URL", CURLOPT_URL);
+    insint_c(d, "PORT", CURLOPT_PORT);
     insint_c(d, "PROXY", CURLOPT_PROXY);
+    insint_c(d, "USERPWD", CURLOPT_USERPWD);
+    insint_c(d, "PROXYUSERPWD", CURLOPT_PROXYUSERPWD);
+    insint_c(d, "RANGE", CURLOPT_RANGE);
+    insint_c(d, "INFILE", CURLOPT_READDATA);
+    /* ERRORBUFFER is not supported */
+    insint_c(d, "WRITEFUNCTION", CURLOPT_WRITEFUNCTION);
+    insint_c(d, "READFUNCTION", CURLOPT_READFUNCTION);
+    insint_c(d, "TIMEOUT", CURLOPT_TIMEOUT);
+    insint_c(d, "INFILESIZE", CURLOPT_INFILESIZE_LARGE);    /* _LARGE ! */
+    insint_c(d, "POSTFIELDS", CURLOPT_POSTFIELDS);
+    insint_c(d, "REFERER", CURLOPT_REFERER);
+    insint_c(d, "FTPPORT", CURLOPT_FTPPORT);
+    insint_c(d, "USERAGENT", CURLOPT_USERAGENT);
+    insint_c(d, "LOW_SPEED_LIMIT", CURLOPT_LOW_SPEED_LIMIT);
+    insint_c(d, "LOW_SPEED_TIME", CURLOPT_LOW_SPEED_TIME);
+    insint_c(d, "RESUME_FROM", CURLOPT_RESUME_FROM_LARGE);  /* _LARGE ! */
+    insint_c(d, "WRITEDATA", CURLOPT_WRITEDATA);
+    insint_c(d, "READDATA", CURLOPT_READDATA);
     insint_c(d, "PROXYPORT", CURLOPT_PROXYPORT);
     insint_c(d, "HTTPPROXYTUNNEL", CURLOPT_HTTPPROXYTUNNEL);
     insint_c(d, "VERBOSE", CURLOPT_VERBOSE);
@@ -2503,18 +2615,7 @@ initpycurl(void)
     insint_c(d, "FOLLOWLOCATION", CURLOPT_FOLLOWLOCATION);
     insint_c(d, "TRANSFERTEXT", CURLOPT_TRANSFERTEXT);
     insint_c(d, "PUT", CURLOPT_PUT);
-    insint_c(d, "USERPWD", CURLOPT_USERPWD);
-    insint_c(d, "PROXYUSERPWD", CURLOPT_PROXYUSERPWD);
-    insint_c(d, "RANGE", CURLOPT_RANGE);
-    insint_c(d, "TIMEOUT", CURLOPT_TIMEOUT);
-    insint_c(d, "POSTFIELDS", CURLOPT_POSTFIELDS);
-    insint_c(d, "POSTFIELDSIZE", CURLOPT_POSTFIELDSIZE);
-    insint_c(d, "REFERER", CURLOPT_REFERER);
-    insint_c(d, "USERAGENT", CURLOPT_USERAGENT);
-    insint_c(d, "FTPPORT", CURLOPT_FTPPORT);
-    insint_c(d, "LOW_SPEED_LIMIT", CURLOPT_LOW_SPEED_LIMIT);
-    insint_c(d, "LOW_SPEED_TIME", CURLOPT_LOW_SPEED_TIME);
-    insint_c(d, "CURLOPT_RESUME_FROM", CURLOPT_RESUME_FROM);
+    insint_c(d, "POSTFIELDSIZE", CURLOPT_POSTFIELDSIZE_LARGE);  /* _LARGE ! */
     insint_c(d, "COOKIE", CURLOPT_COOKIE);
     insint_c(d, "HTTPHEADER", CURLOPT_HTTPHEADER);
     insint_c(d, "HTTPPOST", CURLOPT_HTTPPOST);
@@ -2575,7 +2676,7 @@ initpycurl(void)
     insint_c(d, "PROXYAUTH", CURLOPT_PROXYAUTH);
     insint_c(d, "FTP_RESPONSE_TIMEOUT", CURLOPT_FTP_RESPONSE_TIMEOUT);
     insint_c(d, "IPRESOLVE", CURLOPT_IPRESOLVE);
-    insint_c(d, "MAXFILESIZE", CURLOPT_MAXFILESIZE);
+    insint_c(d, "MAXFILESIZE", CURLOPT_MAXFILESIZE_LARGE);  /* _LARGE ! */
     insint_c(d, "INFILESIZE_LARGE", CURLOPT_INFILESIZE_LARGE);
     insint_c(d, "RESUME_FROM_LARGE", CURLOPT_RESUME_FROM_LARGE);
     insint_c(d, "MAXFILESIZE_LARGE", CURLOPT_MAXFILESIZE_LARGE);
@@ -2587,16 +2688,11 @@ initpycurl(void)
     insint_c(d, "SOURCE_PREQUOTE", CURLOPT_SOURCE_PREQUOTE);
     insint_c(d, "SOURCE_POSTQUOTE", CURLOPT_SOURCE_POSTQUOTE);
     insint_c(d, "FTPSSLAUTH", CURLOPT_FTPSSLAUTH);
-    insint_c(d, "FTP_ACCOUNT", CURLOPT_FTP_ACCOUNT);
-    insint_c(d, "SOURCE_URL", CURLOPT_SOURCE_URL);
-    insint_c(d, "SOURCE_QUOTE", CURLOPT_SOURCE_QUOTE);
     insint_c(d, "IOCTLFUNCTION", CURLOPT_IOCTLFUNCTION);
     insint_c(d, "IOCTLDATA", CURLOPT_IOCTLDATA);
-
-    /* constants for ioctl callback return values */
-    insint_c(d, "IOE_OK", CURLIOE_OK);
-    insint_c(d, "IOE_UNKNOWNCMD", CURLIOE_UNKNOWNCMD);
-    insint_c(d, "IOE_FAILRESTART", CURLIOE_FAILRESTART);
+    insint_c(d, "SOURCE_URL", CURLOPT_SOURCE_URL);
+    insint_c(d, "SOURCE_QUOTE", CURLOPT_SOURCE_QUOTE);
+    insint_c(d, "FTP_ACCOUNT", CURLOPT_FTP_ACCOUNT);
 
     /* constants for setopt(IPRESOLVE, x) */
     insint_c(d, "IPRESOLVE_WHATEVER", CURL_IPRESOLVE_WHATEVER);

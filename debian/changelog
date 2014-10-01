@@ -1,3 +1,10 @@
+pycurl (7.15.2-1) unstable; urgency=low
+
+  * New upstream release. 
+  * Adopted debhelper's compatibility level 5.
+
+ -- Domenico Andreoli <cavok@debian.org>  Tue,  7 Mar 2006 10:05:16 +0100
+
 pycurl (7.15.0-1) unstable; urgency=low
 
   * New upstream release.

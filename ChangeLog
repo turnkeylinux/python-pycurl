@@ -1,4 +1,20 @@
-Version 7.15.0 [requires libcurl-7.15.0 or better]
+Version 7.15.2 [requires libcurl-7.15.2 or better]
+--------------
+
+        * Added CURLOPT_CONNECT_ONLY, CURLINFO_LASTSOCKET,
+          CURLOPT_LOCALPORT and CURLOPT_LOCALPORTRANGE.
+
+
+Version 7.15.1
+--------------
+
+2006-01-31 Kjetil Jacobsen <kjetilja>
+
+        * Fixed memory leak for getinfo calls that return a
+          list as result.  Patch by Paul Pacheco.
+
+
+Version 7.15.0
 --------------
 
 2005-10-18  Kjetil Jacobsen  <kjetilja>

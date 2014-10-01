@@ -20,8 +20,8 @@ Standards-Version: 3.9.5
 X-Python-Version: all
 X-Python3-Version: >= 3.3
 Homepage: http://pycurl.sourceforge.net
-Vcs-Svn: svn://anonscm.debian.org/python-modules/packages/pycurl/trunk/
-Vcs-Browser: http://anonscm.debian.org/viewvc/python-modules/packages/pycurl/trunk/
+Vcs-Git: git://anonscm.debian.org/python-modules/packages/pycurl.git
+Vcs-Browser: http://anonscm.debian.org/gitweb/?p=python-modules/packages/pycurl.git
 
 Package: python-pycurl
 Architecture: any

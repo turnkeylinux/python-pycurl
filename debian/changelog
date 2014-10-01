@@ -1,3 +1,14 @@
+pycurl (7.14.0-2) unstable; urgency=low
+
+  * Matthias Klose:
+    - Dropped package python2.2-pycurl.
+    - Improved the build process.
+
+  * Domenico Andreoli:
+    - Applied Matthias' patch :) (closes: #320064).
+
+ -- Domenico Andreoli <cavok@debian.org>  Thu,  4 Aug 2005 00:33:41 +0200
+
 pycurl (7.14.0-1) unstable; urgency=low
 
   * New upstream release.

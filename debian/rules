@@ -1,4 +1,4 @@
-#!/usr/bin/make -f
+#! /usr/bin/make -f
 
 # Uncomment this to turn on verbose mode.
 #export DH_VERBOSE=1
@@ -9,24 +9,28 @@ export DH_OPTIONS
 # This is the debhelper compatibility version to use.
 export DH_COMPAT=3
 
+PYVERS = $(subst -dev,,\
+           $(subst python,,\
+             $(filter python%-dev,\
+               $(shell sed -n '/^Build-Depends/s/,//gp' debian/control))))
+
 build: build-stamp
 
 build-stamp: DH_OPTIONS=
-build-stamp:
-	dh_testdir
-	python2.2 setup.py build
-	python2.3 setup.py build
-	python2.4 setup.py build
+build-stamp: $(PYVERS:%=build-python%)
 	touch build-stamp
+
+build-python%:
+	dh_testdir
+	python$* setup.py build
+	touch $@
 
 clean:
 	dh_testdir
 	dh_testroot
-	rm -f build-stamp
-	-python2.2 setup.py clean
-	-python2.3 setup.py clean
-	-python2.4 setup.py clean
+	rm -f build-*
 	rm -rf build
+	-find -name '*.py[co]' | xargs rm -f
 	dh_clean
 
 install: DH_OPTIONS=
@@ -35,9 +39,9 @@ install: build
 	dh_testroot
 	dh_clean -k
 	dh_installdirs
-	install -m 644 build/lib.*-*-2.2/pycurl.so debian/python2.2-pycurl/usr/lib/python2.2/site-packages
-	install -m 644 build/lib.*-*-2.3/pycurl.so debian/python2.3-pycurl/usr/lib/python2.3/site-packages
-	install -m 644 build/lib.*-*-2.4/pycurl.so debian/python2.4-pycurl/usr/lib/python2.4/site-packages
+	for i in $(PYVERS); do \
+	  install -m 644 build/lib.*-*-$$i/pycurl.so debian/python$$i-pycurl/usr/lib/python$$i/site-packages; \
+	done
 
 # Build architecture-independent files here.
 binary-indep: DH_OPTIONS=-i
@@ -49,9 +53,9 @@ binary-arch: DH_OPTIONS=-a
 binary-arch: build install
 	dh_testdir
 	dh_testroot
-	cp -a doc/*.html debian/python2.2-pycurl/usr/share/doc/python2.2-pycurl/html
-	cp -a doc/*.html debian/python2.3-pycurl/usr/share/doc/python2.3-pycurl/html
-	cp -a doc/*.html debian/python2.4-pycurl/usr/share/doc/python2.4-pycurl/html
+	for i in $(PYVERS); do \
+	  cp -a doc/*.html debian/python$$i-pycurl/usr/share/doc/python$$i-pycurl/html; \
+	done
 	dh_installdocs -A TODO
 	dh_installexamples -A examples/* tests/*
 	dh_installchangelogs ChangeLog

@@ -1,16 +1,28 @@
-Description: Fixes refcount bug and provides better organization of PyCurl object. Submitted by dbprice1.
+From 2ae4c02eb1ea52e484edbf8c391f57fb284ff4d4 Mon Sep 17 00:00:00 2001
+From: Sandro Tosi <morph@debian.org>
+Date: Sun, 28 Oct 2012 11:20:44 +0100
+Subject: Fixes refcount bug and provides better organization of PyCurl object.
+ Submitted by dbprice1.
+
 Origin: http://pycurl.cvs.sourceforge.net/viewvc/pycurl/pycurl/src/pycurl.c?r1=1.148&r2=1.149
 Bug: https://sourceforge.net/tracker/?func=detail&aid=2893665&group_id=28236&atid=392777
 
---- pycurl-7.19.0.orig/src/pycurl.c	2008/09/29 10:56:57	1.148
-+++ pycurl-7.19.0/src/pycurl.c	2010/04/28 16:02:41	1.149
+Patch-Name: 30_fix_refcounts_calling_reset_twice.patch
+---
+ src/pycurl.c | 89 +++++++++++++++++++++++++++++++++++++++---------------------
+ 1 file changed, 58 insertions(+), 31 deletions(-)
+
+diff --git a/src/pycurl.c b/src/pycurl.c
+index 6de1514..32c7ca5 100644
+--- a/src/pycurl.c
++++ b/src/pycurl.c
 @@ -1,4 +1,4 @@
 -/* $Id: pycurl.c,v 1.148 2008/09/29 10:56:57 kjetilja Exp $ */
 +/* $Id: pycurl.c,v 1.149 2010/04/28 16:02:41 zanee Exp $ */
  
  /* PycURL -- cURL Python module
   *
-@@ -739,64 +739,80 @@
+@@ -739,64 +739,80 @@ util_curl_new(void)
      return self;
  }
  
@@ -121,7 +133,7 @@ Bug: https://sourceforge.net/tracker/?func=detail&aid=2893665&group_id=28236&ati
      /* Success - return new object */
      return self;
  
-@@ -1404,6 +1420,8 @@
+@@ -1404,6 +1420,8 @@ verbose_error:
  static PyObject*
  do_curl_reset(CurlObject *self)
  {
@@ -130,7 +142,7 @@ Bug: https://sourceforge.net/tracker/?func=detail&aid=2893665&group_id=28236&ati
      curl_easy_reset(self->handle);
  
      /* Decref callbacks and file handles */
-@@ -1421,10 +1439,19 @@
+@@ -1421,10 +1439,19 @@ do_curl_reset(CurlObject *self)
      SFREE(self->postquote);
      SFREE(self->prequote);
  #undef SFREE

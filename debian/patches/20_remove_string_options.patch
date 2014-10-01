@@ -1,15 +1,27 @@
-Description: No longer keep copies of string options since this is managed by libcurl
+From 5e3048e14177eb3b0438d15c476dc266da47c872 Mon Sep 17 00:00:00 2001
+From: Sandro Tosi <morph@debian.org>
+Date: Sun, 28 Oct 2012 11:20:44 +0100
+Subject: No longer keep copies of string options since this is managed by
+ libcurl
+
 Origin: http://pycurl.cvs.sourceforge.net/viewvc/pycurl/pycurl/src/pycurl.c?r1=1.147&r2=1.148
 
---- pycurl-7.19.0.orig/src/pycurl.c	2008/09/09 17:40:34	1.147
-+++ pycurl-7.19.0/src/pycurl.c	2008/09/29 10:56:57	1.148
+Patch-Name: 20_remove_string_options.patch
+---
+ src/pycurl.c | 60 ++----------------------------------------------------------
+ 1 file changed, 2 insertions(+), 58 deletions(-)
+
+diff --git a/src/pycurl.c b/src/pycurl.c
+index a17a23b..6de1514 100644
+--- a/src/pycurl.c
++++ b/src/pycurl.c
 @@ -1,4 +1,4 @@
 -/* $Id: pycurl.c,v 1.147 2008/09/09 17:40:34 kjetilja Exp $ */
 +/* $Id: pycurl.c,v 1.148 2008/09/29 10:56:57 kjetilja Exp $ */
  
  /* PycURL -- cURL Python module
   *
-@@ -97,12 +97,6 @@
+@@ -97,12 +97,6 @@ static void pycurl_ssl_cleanup(void);
  /* Calculate the number of OBJECTPOINT options we need to store */
  #define OPTIONS_SIZE    ((int)CURLOPT_LASTENTRY % 10000)
  #define MOPTIONS_SIZE   ((int)CURLMOPT_LASTENTRY % 10000)
@@ -22,7 +34,7 @@ Origin: http://pycurl.cvs.sourceforge.net/viewvc/pycurl/pycurl/src/pycurl.c?r1=1
  
  /* Type objects */
  static PyObject *ErrorObject = NULL;
-@@ -161,7 +155,6 @@
+@@ -161,7 +155,6 @@ typedef struct {
      PyObject *writedata_fp;
      PyObject *writeheader_fp;
      /* misc */
@@ -30,7 +42,7 @@ Origin: http://pycurl.cvs.sourceforge.net/viewvc/pycurl/pycurl/src/pycurl.c?r1=1
      char error[CURL_ERROR_SIZE+1];
  } CurlObject;
  
-@@ -741,7 +734,6 @@
+@@ -741,7 +734,6 @@ util_curl_new(void)
      self->writeheader_fp = NULL;
  
      /* Zero string pointer memory buffer used by setopt */
@@ -38,7 +50,7 @@ Origin: http://pycurl.cvs.sourceforge.net/viewvc/pycurl/pycurl/src/pycurl.c?r1=1
      memset(self->error, 0, sizeof(self->error));
  
      return self;
-@@ -804,7 +796,6 @@
+@@ -804,7 +796,6 @@ do_curl_new(PyObject *dummy)
          free(s);
          goto error;
      }
@@ -46,7 +58,7 @@ Origin: http://pycurl.cvs.sourceforge.net/viewvc/pycurl/pycurl/src/pycurl.c?r1=1
  
      /* Success - return new object */
      return self;
-@@ -872,7 +863,6 @@
+@@ -872,7 +863,6 @@ static void
  util_curl_close(CurlObject *self)
  {
      CURL *handle;
@@ -54,7 +66,7 @@ Origin: http://pycurl.cvs.sourceforge.net/viewvc/pycurl/pycurl/src/pycurl.c?r1=1
  
      /* Zero handle and thread-state to disallow any operations to be run
       * from now on */
-@@ -916,16 +906,6 @@
+@@ -916,16 +906,6 @@ util_curl_close(CurlObject *self)
      SFREE(self->postquote);
      SFREE(self->prequote);
  #undef SFREE
@@ -71,7 +83,7 @@ Origin: http://pycurl.cvs.sourceforge.net/viewvc/pycurl/pycurl/src/pycurl.c?r1=1
  }
  
  
-@@ -1424,8 +1404,6 @@
+@@ -1424,8 +1404,6 @@ verbose_error:
  static PyObject*
  do_curl_reset(CurlObject *self)
  {
@@ -80,7 +92,7 @@ Origin: http://pycurl.cvs.sourceforge.net/viewvc/pycurl/pycurl/src/pycurl.c?r1=1
      curl_easy_reset(self->handle);
  
      /* Decref callbacks and file handles */
-@@ -1443,15 +1421,6 @@
+@@ -1443,15 +1421,6 @@ do_curl_reset(CurlObject *self)
      SFREE(self->postquote);
      SFREE(self->prequote);
  #undef SFREE
@@ -96,7 +108,7 @@ Origin: http://pycurl.cvs.sourceforge.net/viewvc/pycurl/pycurl/src/pycurl.c?r1=1
      return Py_None;
  }
  
-@@ -1461,7 +1430,6 @@
+@@ -1461,7 +1430,6 @@ static PyObject *
  util_curl_unsetopt(CurlObject *self, int option)
  {
      int res;
@@ -104,7 +116,7 @@ Origin: http://pycurl.cvs.sourceforge.net/viewvc/pycurl/pycurl/src/pycurl.c?r1=1
  
  #define SETOPT2(o,x) \
      if ((res = curl_easy_setopt(self->handle, (o), (x))) != CURLE_OK) goto error
-@@ -1502,7 +1470,6 @@
+@@ -1502,7 +1470,6 @@ util_curl_unsetopt(CurlObject *self, int option)
      case CURLOPT_SSL_CIPHER_LIST:
      case CURLOPT_USERPWD:
          SETOPT((char *) 0);
@@ -112,7 +124,7 @@ Origin: http://pycurl.cvs.sourceforge.net/viewvc/pycurl/pycurl/src/pycurl.c?r1=1
          break;
  
      /* info: we explicitly list unsupported options here */
-@@ -1512,11 +1479,6 @@
+@@ -1512,11 +1479,6 @@ util_curl_unsetopt(CurlObject *self, int option)
          return NULL;
      }
  
@@ -124,7 +136,7 @@ Origin: http://pycurl.cvs.sourceforge.net/viewvc/pycurl/pycurl/src/pycurl.c?r1=1
      Py_INCREF(Py_None);
      return Py_None;
  
-@@ -1587,8 +1549,6 @@
+@@ -1587,8 +1549,6 @@ do_curl_setopt(CurlObject *self, PyObject *args)
      if (PyString_Check(obj)) {
          char *str = NULL;
          Py_ssize_t len = -1;
@@ -133,7 +145,7 @@ Origin: http://pycurl.cvs.sourceforge.net/viewvc/pycurl/pycurl/src/pycurl.c?r1=1
  
          /* Check that the option specified a string as well as the input */
          switch (option) {
-@@ -1651,28 +1611,12 @@
+@@ -1651,28 +1611,12 @@ do_curl_setopt(CurlObject *self, PyObject *args)
          }
          /* Allocate memory to hold the string */
          assert(str != NULL);

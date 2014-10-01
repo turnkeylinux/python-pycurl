@@ -21,6 +21,8 @@ override_dh_auto_build:
 		python$$py setup.py build ; \
 		python$$py-dbg setup.py build ; \
 	done
+	mkdir -p www/htdocs/doc
+	$(MAKE) docs
 
 override_dh_auto_test:
 ifeq ($(filter nocheck,$(DEB_BUILD_OPTIONS)),)
@@ -60,8 +62,8 @@ override_dh_auto_install:
 	dh_link -ppython-pycurl-dbg usr/share/doc/python-pycurl usr/share/doc/python-pycurl-dbg
 
 override_dh_installdocs:
-	cp -a doc/*.html debian/python-pycurl/usr/share/doc/python-pycurl/html
-	dh_installdocs TODO README.rst
+	cp -a doc/*.html www/htdocs/doc/*.html www/htdocs/*.html debian/python-pycurl/usr/share/doc/python-pycurl/html
+	dh_installdocs README.rst
 
 override_dh_installexamples:
 	dh_installexamples examples/*

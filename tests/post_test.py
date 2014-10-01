@@ -1,5 +1,5 @@
 #! /usr/bin/env python
-# -*- coding: iso-8859-1 -*-
+# -*- coding: utf-8 -*-
 # vi:ts=4:et
 
 import os.path
@@ -64,11 +64,11 @@ class PostTest(unittest.TestCase):
         # UnicodeDecodeError: 'utf8' codec can't decode byte 0x80 in position 4: invalid start byte
         
         #self.curl.setopt(pycurl.VERBOSE, 1)
-        sio = util.StringIO()
+        sio = util.BytesIO()
         self.curl.setopt(pycurl.WRITEFUNCTION, sio.write)
         self.curl.perform()
         self.assertEqual(200, self.curl.getinfo(pycurl.HTTP_CODE))
-        body = sio.getvalue()
+        body = sio.getvalue().decode()
         returned_fields = json.loads(body)
         self.assertEqual(pf, returned_fields)
     
@@ -99,14 +99,27 @@ class PostTest(unittest.TestCase):
         }]
         self.check_post(send, expect, 'http://localhost:8380/files')
     
+    def test_post_buffer(self):
+        contents = 'hello, world!'
+        send = [
+            ('field2', (pycurl.FORM_BUFFER, 'uploaded.file', pycurl.FORM_BUFFERPTR, contents)),
+        ]
+        expect = [{
+            'name': 'field2',
+            'filename': 'uploaded.file',
+            'data': contents,
+        }]
+        self.check_post(send, expect, 'http://localhost:8380/files')
+    
     # XXX this test takes about a second to run, check keep-alives?
     def check_post(self, send, expect, endpoint):
         self.curl.setopt(pycurl.URL, endpoint)
         self.curl.setopt(pycurl.HTTPPOST, send)
         #self.curl.setopt(pycurl.VERBOSE, 1)
-        sio = util.StringIO()
+        sio = util.BytesIO()
         self.curl.setopt(pycurl.WRITEFUNCTION, sio.write)
         self.curl.perform()
-        body = sio.getvalue()
+        self.assertEqual(200, self.curl.getinfo(pycurl.HTTP_CODE))
+        body = sio.getvalue().decode()
         returned_fields = json.loads(body)
         self.assertEqual(expect, returned_fields)

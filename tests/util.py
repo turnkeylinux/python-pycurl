@@ -1,18 +1,45 @@
-# -*- coding: iso-8859-1 -*-
+# -*- coding: utf-8 -*-
 # vi:ts=4:et
-# $Id$
 
 import os, sys, socket
 import time as _time
-import pycurl
-
 try:
-    from cStringIO import StringIO
+    import functools
 except ImportError:
+    import functools_backport as functools
+
+py3 = sys.version_info[0] == 3
+
+# python 2/3 compatibility
+if py3:
+    from io import StringIO, BytesIO
+    
+    # borrowed from six
+    def b(s):
+        '''Byte literal'''
+        return s.encode("latin-1")
+    def u(s):
+        '''Text literal'''
+        return s
+    text_type = str
+    binary_type = bytes
+else:
     try:
-        from StringIO import StringIO
+        from cStringIO import StringIO
     except ImportError:
-        from io import StringIO
+        from StringIO import StringIO
+    BytesIO = StringIO
+    
+    # borrowed from six
+    def b(s):
+        '''Byte literal'''
+        return s
+    # Workaround for standalone backslash
+    def u(s):
+        '''Text literal'''
+        return unicode(s.replace(r'\\', r'\\\\'), "unicode_escape")
+    text_type = unicode
+    binary_type = str
 
 def version_less_than_spec(version_tuple, spec_tuple):
     # spec_tuple may have 2 elements, expect version_tuple to have 3 elements
@@ -25,8 +52,53 @@ def version_less_than_spec(version_tuple, spec_tuple):
     return False
 
 def pycurl_version_less_than(*spec):
+    import pycurl
+    
     version = [int(part) for part in pycurl.version_info()[1].split('.')]
     return version_less_than_spec(version, spec)
+
+def only_python3(fn):
+    import nose.plugins.skip
+    
+    @functools.wraps(fn)
+    def decorated(*args, **kwargs):
+        if sys.version_info[0] < 3:
+            raise nose.plugins.skip.SkipTest('python < 3')
+        
+        return fn(*args, **kwargs)
+    
+    return decorated
+
+def min_libcurl(major, minor, patch):
+    import nose.plugins.skip
+    
+    def decorator(fn):
+        @functools.wraps(fn)
+        def decorated(*args, **kwargs):
+            if pycurl_version_less_than(major, minor, patch):
+                raise nose.plugins.skip.SkipTest('libcurl < %d.%d.%d' % (major, minor, patch))
+            
+            return fn(*args, **kwargs)
+        
+        return decorated
+    
+    return decorator
+
+def only_ssl(fn):
+    import nose.plugins.skip
+    import pycurl
+    
+    @functools.wraps(fn)
+    def decorated(*args, **kwargs):
+        # easier to check that pycurl supports https, although
+        # theoretically it is not the same test.
+        # pycurl.version_info()[8] is a tuple of protocols supported by libcurl
+        if 'https' not in pycurl.version_info()[8]:
+            raise nose.plugins.skip.SkipTest('libcurl does not support ssl')
+        
+        return fn(*args, **kwargs)
+    
+    return decorated
 
 try:
     create_connection = socket.create_connection
@@ -46,7 +118,7 @@ def wait_for_network_service(netloc, check_interval, num_attempts):
         try:
             conn = create_connection(netloc, check_interval)
         except socket.error:
-            e = sys.exc_info()[1]
+            #e = sys.exc_info()[1]
             _time.sleep(check_interval)
         else:
             conn.close()

@@ -1,3 +1,16 @@
+pycurl (7.19.3-1) unstable; urgency=medium
+
+  * New upstream release
+  * debian/copyright
+    - updated MIT copyright holders
+    - added new file license information
+  * debian/patches/10_setup.py.patch
+    - refreshed to new upstream code
+  * debian/{control, rules}
+    - build and install documentation
+
+ -- Sandro Tosi <morph@debian.org>  Sat, 18 Jan 2014 22:06:19 +0100
+
 pycurl (7.19.0.3-1) unstable; urgency=low
 
   * New upstream release

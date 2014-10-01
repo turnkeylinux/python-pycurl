@@ -1,5 +1,5 @@
 #! /usr/bin/env python
-# -*- coding: iso-8859-1 -*-
+# -*- coding: utf-8 -*-
 # vi:ts=4:et
 
 import socket
@@ -16,12 +16,15 @@ from . import util
 setup_module, teardown_module = appmanager.setup(('app', 8380))
 
 socket_open_called = False
+socket_open_address = None
 
-def socket_open(family, socktype, protocol):
+def socket_open(family, socktype, protocol, address):
     global socket_open_called
+    global socket_open_address
     socket_open_called = True
+    socket_open_address = address
     
-    #print(family, socktype, protocol)
+    #print(family, socktype, protocol, address)
     s = socket.socket(family, socktype, protocol)
     s.setsockopt(socket.SOL_SOCKET, socket.SO_KEEPALIVE, 1)
     return s
@@ -36,9 +39,10 @@ class SocketOpenTest(unittest.TestCase):
     def test_socket_open(self):
         self.curl.setopt(pycurl.OPENSOCKETFUNCTION, socket_open)
         self.curl.setopt(self.curl.URL, 'http://localhost:8380/success')
-        sio = util.StringIO()
+        sio = util.BytesIO()
         self.curl.setopt(pycurl.WRITEFUNCTION, sio.write)
         self.curl.perform()
         
         assert socket_open_called
-        self.assertEqual('success', sio.getvalue())
+        self.assertEqual(("127.0.0.1", 8380), socket_open_address)
+        self.assertEqual('success', sio.getvalue().decode())

@@ -5,7 +5,6 @@
 
 SHELL = /bin/sh
 
-PYTHON = python2.3
 PYTHON = python
 NOSETESTS = nosetests
 
@@ -17,8 +16,12 @@ build-7.10.8:
 
 test: build
 	mkdir -p tests/tmp
-	PYTHONPATH=$$(ls -d build/lib.*):$$PYTHONPATH \
+	PYTHONSUFFIX=$$(python -V 2>&1 |awk '{print $$2}' |awk -F. '{print $$1 "." $$2}') && \
+	PYTHONPATH=$$(ls -d build/lib.*$$PYTHONSUFFIX):$$PYTHONPATH \
+	$(PYTHON) -c 'import pycurl; print(pycurl.version)'
+	PYTHONPATH=$$(ls -d build/lib.*$$PYTHONSUFFIX):$$PYTHONPATH \
 	$(NOSETESTS)
+	./tests/ext/test-suite.sh
 
 # (needs GNU binutils)
 strip: build
@@ -56,6 +59,10 @@ windist: distclean
 	rm -rf build
 	python2.4 setup_win32_ssl.py bdist_wininst
 	rm -rf build
+
+docs:
+	cd doc && for file in *.rst; do rst2html "$$file" ../www/htdocs/doc/`echo "$$file" |sed -e 's/.rst$$/.html/'`; done
+	rst2html RELEASE-NOTES.rst www/htdocs/release-notes.html
 
 
 .PHONY: all build test strip install install_lib clean distclean maintainer-clean dist sdist windist

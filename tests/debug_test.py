@@ -1,5 +1,5 @@
 #! /usr/bin/env python
-# -*- coding: iso-8859-1 -*-
+# -*- coding: utf-8 -*-
 # vi:ts=4:et
 
 import pycurl
@@ -25,12 +25,12 @@ class DebugTest(unittest.TestCase):
         self.curl.setopt(pycurl.VERBOSE, 1)
         self.curl.setopt(pycurl.DEBUGFUNCTION, self.debug_function)
         self.curl.setopt(pycurl.URL, 'http://localhost:8380/success')
-        sio = util.StringIO()
+        sio = util.BytesIO()
         self.curl.setopt(pycurl.WRITEFUNCTION, sio.write)
         self.curl.perform()
         
         # Some checks with no particular intent
-        self.check(0, 'About to connect')
+        self.check(0, 'Trying')
         if util.pycurl_version_less_than(7, 24):
             self.check(0, 'connected')
         else:

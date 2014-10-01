@@ -1,12 +1,19 @@
+pycurl (7.15.4.2-2) unstable; urgency=low
+
+  * Fixed reversed logic in acquring python thread lock (closes: #380156).
+    Patch courtesy of Bastian Kleineidam.
+
+ -- Domenico Andreoli <cavok@debian.org>  Tue,  8 Aug 2006 08:22:16 +0200
+
 pycurl (7.15.4.2-1) unstable; urgency=low
 
-  * New upstream release. 
+  * New upstream release.
 
  -- Domenico Andreoli <cavok@debian.org>  Tue, 25 Jul 2006 11:01:26 +0200
 
 pycurl (7.15.4-1) unstable; urgency=low
 
-  * New upstream release. 
+  * New upstream release.
 
  -- Domenico Andreoli <cavok@debian.org>  Tue, 27 Jun 2006 17:16:37 +0200
 
@@ -18,7 +25,7 @@ pycurl (7.15.2-2) unstable; urgency=low
 
 pycurl (7.15.2-1) unstable; urgency=low
 
-  * New upstream release. 
+  * New upstream release.
   * Adopted debhelper's compatibility level 5.
 
  -- Domenico Andreoli <cavok@debian.org>  Tue,  7 Mar 2006 10:05:16 +0100

@@ -1,5 +1,5 @@
 #! /usr/bin/env python
-# -*- coding: iso-8859-1 -*-
+# -*- coding: utf-8 -*-
 # vi:ts=4:et
 
 import gc
@@ -45,11 +45,11 @@ class SetoptLifecycleTest(unittest.TestCase):
         for i in range(100):
             curl = requests[i]
             #self.curl.setopt(pycurl.VERBOSE, 1)
-            sio = util.StringIO()
+            sio = util.BytesIO()
             curl.setopt(pycurl.WRITEFUNCTION, sio.write)
             curl.perform()
             self.assertEqual(200, curl.getinfo(pycurl.HTTP_CODE))
-            body = sio.getvalue()
+            body = sio.getvalue().decode()
             returned_fields = json.loads(body)
             self.assertEqual(dict(field='value%d' % i), returned_fields)
         

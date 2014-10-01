@@ -1,5 +1,5 @@
 #! /usr/bin/env python
-# -*- coding: iso-8859-1 -*-
+# -*- coding: utf-8 -*-
 # vi:ts=4:et
 
 import pycurl
@@ -17,11 +17,8 @@ setup_module, teardown_module = appmanager.setup(('app', 8380))
 class ResetTest(unittest.TestCase):
     # XXX this test was broken when it was test_reset.py
     def skip_reset(self):
-        outf = util.StringIO()
+        outf = util.BytesIO()
         cm = pycurl.CurlMulti()
-
-        # Set multi handle's options
-        cm.setopt(pycurl.M_PIPELINING, 1)
 
         eh = pycurl.Curl()
 

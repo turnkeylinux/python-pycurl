@@ -1,3 +1,15 @@
+pycurl (7.19.0-2) unstable; urgency=low
+
+  [ Sandro Tosi ]
+  * debian/control
+    - bump Standards-Version to 3.8.2 (no changes needed)
+
+  [ Bernd Zeimetz ]
+  * Use /usr/bin/curl-config --version to find the libcurl version
+    to depend on (Closes: #527546). Thanks to Samuel Bronson.
+
+ -- Bernd Zeimetz <bzed@debian.org>  Fri, 07 Aug 2009 18:00:37 +0200
+
 pycurl (7.19.0-1) unstable; urgency=low
 
   [ Bernd Zeimetz ]

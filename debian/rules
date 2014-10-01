@@ -9,7 +9,7 @@ include /usr/share/dpatch/dpatch.make
 export DH_OPTIONS
 
 PYVERS := $(shell pyversions -vs)
-CURLVERS := $(shell dpkg-parsechangelog  | grep '^Version' | sed 's,Version: \([^-]*\).*,\1,')
+CURLVERS := $(strip $(shell /usr/bin/curl-config --version | awk '{print $$2}'))
 
 unexport LDFLAGS
 export FFLAGS="-fPIC"

@@ -1,6 +1,14 @@
+pycurl (7.16.2.1-3) unstable; urgency=low
+
+  * Fixed package description (closes: #423905).
+  * Merge from Ubuntu:
+    - build a python-pycurl-dbg package.
+
+ -- Domenico Andreoli <cavok@debian.org>  Mon, 28 May 2007 01:14:33 +0200
+
 pycurl (7.16.2.1-2) unstable; urgency=low
 
-  * Proper SSL library flavour is now known during build. 
+  * Proper SSL library flavour is now known during build.
 
  -- Domenico Andreoli <cavok@debian.org>  Mon, 14 May 2007 01:17:33 +0200
 

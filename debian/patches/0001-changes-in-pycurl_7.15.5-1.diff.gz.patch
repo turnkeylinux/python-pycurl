@@ -1,0 +1,22 @@
+From 5c63f1ae1cba7a0b2afb01a3b5f82c3fd7471802 Mon Sep 17 00:00:00 2001
+From: Domenico Andreoli <cavok@debian.org>
+Date: Fri, 11 Aug 2006 08:58:26 +0200
+Subject: changes in pycurl_7.15.5-1.diff.gz
+
+---
+ src/pycurl.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/src/pycurl.c b/src/pycurl.c
+index 674ca23..fa7cfdf 100644
+--- a/src/pycurl.c
++++ b/src/pycurl.c
+@@ -416,7 +416,7 @@ static int pycurl_ssl_mutex_destroy(void **m)
+ 
+ static int pycurl_ssl_mutex_lock(void **m)
+ {
+-    return PyThread_acquire_lock(*((PyThread_type_lock *) m), 1);
++    return !PyThread_acquire_lock(*((PyThread_type_lock *) m), 1);
+ }
+ 
+ static int pycurl_ssl_mutex_unlock(void **m)

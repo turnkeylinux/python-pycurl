@@ -1,3 +1,9 @@
+pycurl (7.15.2-2) unstable; urgency=low
+
+  * Adopt to the new python policy.
+
+ -- Matthias Klose <doko@debian.org>  Fri, 16 Jun 2006 18:49:11 +0200
+
 pycurl (7.15.2-1) unstable; urgency=low
 
   * New upstream release. 

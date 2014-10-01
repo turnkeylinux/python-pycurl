@@ -1,9 +1,0 @@
-Document: python2.4-pycurl
-Title: PycURL
-Author: Markus F.X.J. Oberhumer, Kjetil Jacobsen
-Abstract: A Python interface to the cURL library
-Section: Apps/devel
-
-Format: HTML
-Index: /usr/share/doc/python2.4-pycurl/html/pycurl.html
-Files: /usr/share/doc/python2.4-pycurl/html/*.html

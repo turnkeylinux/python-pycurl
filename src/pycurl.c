@@ -1,4 +1,4 @@
-/* $Id: pycurl.c,v 1.89 2005/03/30 17:35:55 mfx Exp $ */
+/* $Id: pycurl.c,v 1.92 2005/06/08 07:28:54 kjetilja Exp $ */
 
 /* PycURL -- cURL Python module
  *
@@ -14,6 +14,7 @@
  *  Eric S. Raymond <esr at thyrsus.com>
  *  Martin Muenstermann <mamuema at sourceforge.net>
  *  Domenico Andreoli <cavok at libero.it>
+ *  Dominique <curl-and-python at d242.net>
  *
  * See file COPYING for license information.
  *
@@ -1387,6 +1388,7 @@ do_curl_setopt(CurlObject *self, PyObject *args)
                         val = PyLong_AsLong(PyTuple_GET_ITEM(t, j));
                         if (val != CURLFORM_COPYCONTENTS &&
                             val != CURLFORM_FILE &&
+                            val != CURLFORM_FILENAME &&
                             val != CURLFORM_CONTENTTYPE)
                         {
                             PyErr_SetString(PyExc_TypeError, "unsupported option");
@@ -2573,6 +2575,7 @@ initpycurl(void)
     insint_c(d, "FORM_CONTENTS", CURLFORM_COPYCONTENTS);
     insint_c(d, "FORM_FILE", CURLFORM_FILE);
     insint_c(d, "FORM_CONTENTTYPE", CURLFORM_CONTENTTYPE);
+    insint_c(d, "FORM_FILENAME", CURLFORM_FILENAME);
 
     /* CURLoption: symbolic constants for setopt() */
 /* FIXME: reorder these to match <curl/curl.h> */

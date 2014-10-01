@@ -1,7 +1,84 @@
-Version 7.19.0 [requires libcurl-7.19.0 or better]
---------------
+Version 7.19.0.3 [requires libcurl-7.19.0 or better] - 2013-12-14
+-----------------------------------------------------------------
 
-        * Added CURLFILE, ADDRESS_SCOPE and ISSUERCERT options, 
+	* Re-release of 7.19.0.2 with minor changes to build Windows packages
+	  due to botched 7.19.0.2 files on PyPi.
+	  http://curl.haxx.se/mail/curlpython-2013-12/0021.html
+
+Version 7.19.0.2 [requires libcurl-7.19.0 or better] - 2013-10-08
+-----------------------------------------------------------------
+
+	* Fixed a bug in a commit made in 2008 but not released until 7.19.0.1
+	  which caused CURLOPT_POSTFIELDS to not correctly increment reference
+	  count of the object being given as its argument, despite libcurl not
+	  copying the data provided by said object.
+
+	* Added support for libcurl pause/unpause functionality,
+	  via curl_easy_pause call and returning READFUNC_PAUSE from
+	  read callback function.
+
+Version 7.19.0.1 [requires libcurl-7.19.0 or better] - 2013-09-23
+-----------------------------------------------------------------
+
+	* Test matrix tool added to test against all supported Python and
+	  libcurl versions.
+
+        * Python 2.4 is now the minimum required version.
+
+        * Source code, bugs and patches are now kept on GitHub.
+
+        * Added CURLINFO_CERTINFO and CURLOPT_CERTINFO.
+
+        * Added CURLOPT_RESOLVE.
+
+        * PycURL can now be used with Python binaries without thread
+          support.
+
+        * gcrypt is no longer initialized when a newer version of gnutls
+          is used.
+
+        * Marked NSS as supported.
+
+        * Fixed relative URL request logic.
+
+        * Fixed a memory leak in util_curl_init.
+
+        * Added CURLOPT_USERNAME and CURLOPT_PASSWORD.
+
+        * Fixed handling of big timeout values.
+
+        * Added GLOBAL_ACK_EINTR.
+
+        * setopt(..., None) can be used as unsetopt().
+
+        * CURLOPT_RANGE can now be unset.
+
+        * Write callback can return -1 to signal user abort.
+
+        * Reorganized tests into an automated test suite.
+
+        * Added CURLOPT_SEEKFUNCTION and CURLOPT_SEEKDATA.
+
+        * Cleaned up website.
+
+        * Fix pycurl.reset() (patch by <johansen at sun.com>).
+
+        * Fix install routine in setup.py where
+          certain platforms (Solaris, Mac OSX, etc)
+          would search for a static copy of libcurl (dbp).
+
+        * Fixed build on OpenSolaris 0906 and other platforms on which
+          curl-config does not have a --static-libs option.
+
+        * No longer keep string options copies in the
+          Curl Python objects, since string options are
+          now managed by libcurl.
+
+
+Version 7.19.0 [requires libcurl-7.19.0 or better]
+--------------------------------------------------
+
+        * Added CURLFILE, ADDRESS_SCOPE and ISSUERCERT options,
           as well as the APPCONNECT_TIME info.
 
         * Added PRIMARY_IP info (patch by

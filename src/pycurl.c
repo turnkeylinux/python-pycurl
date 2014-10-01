@@ -1,10 +1,12 @@
-/* $Id: pycurl.c,v 1.138 2008/04/22 13:47:15 kjetilja Exp $ */
+/* $Id: pycurl.c,v 1.143 2008/06/12 18:01:53 kjetilja Exp $ */
 
 /* PycURL -- cURL Python module
  *
  * Authors:
- *  Copyright (C) 2001-2007 by Kjetil Jacobsen <kjetilja at gmail.com>
- *  Copyright (C) 2001-2007 by Markus F.X.J. Oberhumer <markus at oberhumer.com>
+ *  Copyright (C) 2001-2008 by Kjetil Jacobsen <kjetilja at gmail.com>
+ *  Copyright (C) 2001-2008 by Markus F.X.J. Oberhumer <markus at oberhumer.com>
+ *
+ *  All rights reserved.
  *
  * Contributions:
  *  Tino Lange <Tino.Lange at gmx.de>
@@ -22,7 +24,9 @@
  *  Bastian Kleineidam
  *  Mark Eichin
  *  Aaron Hill <visine19 at hotmail.com>
- *  Daniel Pena Arteaga <dpena ph.tum.de>
+ *  Daniel Pena Arteaga <dpena at ph.tum.de>
+ *  Jim Patterson
+ *  Yuhui H <eyecat at gmail.com>
  *
  * See file README for license information.
  */
@@ -51,8 +55,8 @@
 #if !defined(PY_VERSION_HEX) || (PY_VERSION_HEX < 0x02020000)
 #  error "Need Python version 2.2 or greater to compile pycurl."
 #endif
-#if !defined(LIBCURL_VERSION_NUM) || (LIBCURL_VERSION_NUM < 0x071201)
-#  error "Need libcurl version 7.18.1 or greater to compile pycurl."
+#if !defined(LIBCURL_VERSION_NUM) || (LIBCURL_VERSION_NUM < 0x071202)
+#  error "Need libcurl version 7.18.2 or greater to compile pycurl."
 #endif
 
 /* Python < 2.5 compat for Py_ssize_t */
@@ -1711,6 +1715,14 @@ do_curl_setopt(CurlObject *self, PyObject *args)
         len = PyList_Size(obj);
         if (len == 0) {
             /* Empty list - do nothing */
+            if (!(option == CURLOPT_HTTPHEADER ||
+                  option == CURLOPT_QUOTE ||
+                  option == CURLOPT_POSTQUOTE ||
+                  option == CURLOPT_PREQUOTE)) {
+                /* Empty list - do nothing */
+                Py_INCREF(Py_None);
+                return Py_None;
+            }
             Py_INCREF(Py_None);
             return Py_None;
         }
@@ -2058,6 +2070,7 @@ do_curl_getinfo(CurlObject *self, PyObject *args)
     case CURLINFO_CONTENT_TYPE:
     case CURLINFO_EFFECTIVE_URL:
     case CURLINFO_FTP_ENTRY_PATH:
+    case CURLINFO_REDIRECT_URL:
         {
             /* Return PyString as result */
             char *s_res = NULL;
@@ -2344,6 +2357,9 @@ do_multi_setopt(CurlMultiObject *self, PyObject *args)
         case CURLMOPT_PIPELINING:
             curl_multi_setopt(self->multi_handle, option, d);
             break;
+        case CURLMOPT_MAXCONNECTS:
+            curl_multi_setopt(self->multi_handle, option, d);
+            break;
         default:
             PyErr_SetString(PyExc_TypeError, "integers are not supported for this option");
             return NULL;
@@ -2433,6 +2449,36 @@ do_multi_assign(CurlMultiObject *self, PyObject *args)
     return Py_None;
 }
 
+
+/* --------------- socket_action --------------- */
+static PyObject *
+do_multi_socket_action(CurlMultiObject *self, PyObject *args)
+{
+    CURLMcode res;
+    curl_socket_t socket;
+    int ev_bitmask;
+    int running = -1;
+    
+    if (!PyArg_ParseTuple(args, "ii:socket_action", &socket, &ev_bitmask))
+        return NULL;
+    if (check_multi_state(self, 1 | 2, "socket_action") != 0) {
+        return NULL;
+    }
+    /* Release global lock and start */
+    self->state = PyThreadState_Get();
+    assert(self->state != NULL);
+    Py_BEGIN_ALLOW_THREADS
+
+    res = curl_multi_socket_action(self->multi_handle, socket, ev_bitmask, &running);
+    Py_END_ALLOW_THREADS
+    self->state = NULL;
+
+    if (res != CURLM_OK) {
+        CURLERROR_MSG("multi_socket_action failed");
+    }
+    /* Return a tuple with the result and the number of running handles */
+    return Py_BuildValue("(ii)", (int)res, running);
+}
 
 /* --------------- socket_all --------------- */
 
@@ -2799,6 +2845,8 @@ static char co_unsetopt_doc [] = "unsetopt(option) -> None.  Reset curl session 
 static char co_multi_fdset_doc [] = "fdset() -> Tuple.  Returns a tuple of three lists that can be passed to the select.select() method .\n";
 static char co_multi_info_read_doc [] = "info_read([max_objects]) -> Tuple. Returns a tuple (number of queued handles, [curl objects]).\n";
 static char co_multi_select_doc [] = "select([timeout]) -> Int.  Returns result from doing a select() on the curl multi file descriptor with the given timeout.\n";
+static char co_multi_socket_action_doc [] = "socket_action(sockfd, ev_bitmask) -> Tuple.  Returns result from doing a socket_action() on the curl multi file descriptor with the given timeout.\n";
+static char co_multi_socket_all_doc [] = "socket_all() -> Tuple.  Returns result from doing a socket_all() on the curl multi file descriptor with the given timeout.\n";
 
 static PyMethodDef curlshareobject_methods[] = {
     {"setopt", (PyCFunction)do_curlshare_setopt, METH_VARARGS, cso_setopt_doc},
@@ -2821,7 +2869,8 @@ static PyMethodDef curlmultiobject_methods[] = {
     {"fdset", (PyCFunction)do_multi_fdset, METH_NOARGS, co_multi_fdset_doc},
     {"info_read", (PyCFunction)do_multi_info_read, METH_VARARGS, co_multi_info_read_doc},
     {"perform", (PyCFunction)do_multi_perform, METH_NOARGS, NULL},
-    {"socket_all", (PyCFunction)do_multi_socket_all, METH_NOARGS, NULL},
+    {"socket_action", (PyCFunction)do_multi_socket_action, METH_VARARGS, co_multi_socket_action_doc},
+    {"socket_all", (PyCFunction)do_multi_socket_all, METH_NOARGS, co_multi_socket_all_doc},
     {"setopt", (PyCFunction)do_multi_setopt, METH_VARARGS, NULL},
     {"timeout", (PyCFunction)do_multi_timeout, METH_NOARGS, NULL},
     {"assign", (PyCFunction)do_multi_assign, METH_VARARGS, NULL},
@@ -3575,10 +3624,12 @@ initpycurl(void)
     insint_c(d, "PROXY_TRANSFER_MODE", CURLOPT_PROXY_TRANSFER_MODE);
     insint_c(d, "COPYPOSTFIELDS", CURLOPT_COPYPOSTFIELDS);
     insint_c(d, "SSH_HOST_PUBLIC_KEY_MD5", CURLOPT_SSH_HOST_PUBLIC_KEY_MD5);
+    insint_c(d, "AUTOREFERER", CURLOPT_AUTOREFERER);
 
     insint_c(d, "M_TIMERFUNCTION", CURLMOPT_TIMERFUNCTION);
     insint_c(d, "M_SOCKETFUNCTION", CURLMOPT_SOCKETFUNCTION);
     insint_c(d, "M_PIPELINING", CURLMOPT_PIPELINING);
+    insint_c(d, "M_MAXCONNECTS", CURLMOPT_MAXCONNECTS);
 
     /* constants for setopt(IPRESOLVE, x) */
     insint_c(d, "IPRESOLVE_WHATEVER", CURL_IPRESOLVE_WHATEVER);
@@ -3639,6 +3690,7 @@ initpycurl(void)
     insint_c(d, "CONTENT_TYPE", CURLINFO_CONTENT_TYPE);
     insint_c(d, "REDIRECT_TIME", CURLINFO_REDIRECT_TIME);
     insint_c(d, "REDIRECT_COUNT", CURLINFO_REDIRECT_COUNT);
+    insint_c(d, "REDIRECT_URL", CURLINFO_REDIRECT_URL);
     insint_c(d, "HTTP_CONNECTCODE", CURLINFO_HTTP_CONNECTCODE);
     insint_c(d, "HTTPAUTH_AVAIL", CURLINFO_HTTPAUTH_AVAIL);
     insint_c(d, "PROXYAUTH_AVAIL", CURLINFO_PROXYAUTH_AVAIL);
@@ -3655,6 +3707,18 @@ initpycurl(void)
     insint(d, "GLOBAL_ALL", CURL_GLOBAL_ALL);
     insint(d, "GLOBAL_NOTHING", CURL_GLOBAL_NOTHING);
     insint(d, "GLOBAL_DEFAULT", CURL_GLOBAL_DEFAULT);
+
+
+    /* constants for curl_multi_socket interface */
+    insint(d, "CSELECT_IN", CURL_CSELECT_IN);
+    insint(d, "CSELECT_OUT", CURL_CSELECT_OUT);
+    insint(d, "CSELECT_ERR", CURL_CSELECT_ERR);
+    insint(d, "SOCKET_TIMEOUT", CURL_SOCKET_TIMEOUT);
+    insint(d, "POLL_NONE", CURL_POLL_NONE);
+    insint(d, "POLL_IN", CURL_POLL_IN);
+    insint(d, "POLL_OUT", CURL_POLL_OUT);
+    insint(d, "POLL_INOUT", CURL_POLL_INOUT);
+    insint(d, "POLL_REMOVE", CURL_POLL_REMOVE);
 
     /* curl_lock_data: XXX do we need this in pycurl ??? */
     /* curl_lock_access: XXX do we need this in pycurl ??? */

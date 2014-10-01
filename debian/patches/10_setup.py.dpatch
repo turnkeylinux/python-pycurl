@@ -1,17 +1,14 @@
-From df561a58bf6d84c8796e9f6fa317bc482490cd5e Mon Sep 17 00:00:00 2001
-From: Sandro Tosi <matrixhasu@gmail.com>
-Date: Mon, 2 Jun 2008 19:17:08 +0200
-Subject: =?UTF-8?q?setup.py=0APatch-Name:=2010=5Fsetup.py?=
+#! /bin/sh /usr/share/dpatch/dpatch-run
+## 10_setup.py.dpatch by Sandro Tosi <matrixhasu@gmail.com>
+##
+## All lines beginning with `## DP:' are a description of the patch.
+## DP: No description.
 
----
- setup.py | 3 +--
- 1 file changed, 1 insertion(+), 2 deletions(-)
-
-diff --git a/setup.py b/setup.py
-index d0df478..08b0cd1 100644
---- a/setup.py
-+++ b/setup.py
-@@ -17,7 +17,7 @@ from distutils.util import split_quoted
+@DPATCH@
+diff -urNad pycurl~/setup.py pycurl/setup.py
+--- pycurl~/setup.py	2008-04-22 16:00:45.000000000 +0200
++++ pycurl/setup.py	2008-05-31 22:54:56.540671465 +0200
+@@ -17,7 +17,7 @@
  from distutils.version import LooseVersion
  
  include_dirs = []
@@ -20,7 +17,7 @@ index d0df478..08b0cd1 100644
  library_dirs = []
  libraries = []
  runtime_library_dirs = []
-@@ -188,7 +188,6 @@ setup_args = get_kw(
+@@ -188,7 +188,6 @@
      maintainer_email="kjetilja at gmail.com, markus at oberhumer.com",
      url="http://pycurl.sourceforge.net/",
      license="LGPL/MIT",

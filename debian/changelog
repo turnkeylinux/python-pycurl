@@ -1,3 +1,9 @@
+pycurl (7.18.2-1) unstable; urgency=low
+
+  * New upstream release.
+
+ -- Bernd Zeimetz <bzed@debian.org>  Mon, 16 Jun 2008 13:15:53 +0200
+
 pycurl (7.18.1-1) unstable; urgency=low
 
   [ Sandro Tosi ]

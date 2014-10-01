@@ -1,11 +1,12 @@
 Source: pycurl
 Section: python
 Priority: extra
-Maintainer: Domenico Andreoli <cavok@debian.org>
-Uploaders: Matthias Klose <doko@debian.org>
-Build-Depends: debhelper (>= 5.0.37.1), python-all-dev (>= 2.3.5-9), python-all-dbg, python-central, libcurl4-gnutls-dev (>= 7.16.4-1)
-Standards-Version: 3.7.2
+Maintainer: Debian Python Modules Team <python-modules-team@lists.alioth.debian.org>
+Uploaders: Sandro Tosi <matrixhasu@gmail.com>, Bernd Zeimetz <bzed@debian.org>
+Build-Depends: debhelper (>= 5.0.37.1), python-all-dev (>= 2.3.5-9), python-all-dbg, python-central, libcurl4-gnutls-dev (>= 7.18.1), dpatch
+Standards-Version: 3.7.3
 XS-Python-Version: all
+Homepage: http://pycurl.sourceforge.net
 
 Package: python-pycurl
 Architecture: any
@@ -20,16 +21,14 @@ Description: Python bindings to libcurl
  the libcurl documentation available in libcurl4-gnutls-dev Debian package.
  .
  NOTE: the SSL support is provided by GnuTLS.
- .
- Homepage: http://pycurl.sourceforge.net
 
 Package: python-pycurl-dbg
 Priority: extra
 Architecture: any
-Depends: ${shlibs:Depends}, python-dbg, python-pycurl (= ${Source-Version})
+Depends: ${shlibs:Depends}, python-dbg, python-pycurl (= ${binary:Version})
 XB-Python-Version: ${python:Versions}
 Description: Python bindings to libcurl (debug extension)
  This module provides the Python bindings to libcurl. Please refer to
  the libcurl documentation available in libcurl4-gnutls-dev Debian package.
  .
- This package contains the extension built for the python debug interpreter.
+ This package contains the extension built for the Python debug interpreter.

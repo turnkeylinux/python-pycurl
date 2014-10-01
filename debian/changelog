@@ -1,3 +1,35 @@
+pycurl (7.18.1-1) unstable; urgency=low
+
+  [ Sandro Tosi ]
+  * Adopting packages (Closes: #481074)
+  * New upstream release.
+  * debian/control
+    - set the team as Maintainer
+    - added Bernd Zeimetz and me in Uploaders, removing Matthias Klose
+    - bumped Build-Dep on libcurl4-gnutls-dev to (>= 7.18.1)
+    - added dpatch Build-Dep
+    - bumped Standards-Version to 3.7.3 (no changes)
+    - moved Homepage field to source stanza
+    - updated dependency for -dbg extension to python-pycurl to use
+      ${binary:Version}, to be binNMU safe
+    - fixed a mispell of Python in Description
+  * debian/rules
+    - added dpatch stuff
+    - using setup.py for install and clean targets
+    - running some tests at build-time
+  * debian/patches/10_setup.py.dpatch
+    - added to remove direct upstream code modification
+  * debian/python-pycurl.doc-base
+    - Section updated to Programming/Python
+  * debian/copyright
+    - indented upstream authors, copyright and license with 4 spaces
+    - separated copyright and license notice
+    - extended years in Copyright notice
+    - explicitly identified LGPL location on filesystem
+    - added dual licensing, including MIT license text
+
+ -- Bernd Zeimetz <bzed@debian.org>  Mon, 02 Jun 2008 19:17:08 +0200
+
 pycurl (7.16.4-1) unstable; urgency=low
 
   * New upstream release.

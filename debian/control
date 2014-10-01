@@ -3,25 +3,29 @@ Section: python
 Priority: extra
 Maintainer: Domenico Andreoli <cavok@debian.org>
 Uploaders: Matthias Klose <doko@debian.org>
-Build-Depends: debhelper (>> 3.0.0), python2.3-dev, python2.4-dev, libcurl3-gnutls-dev (>= 7.14.1)
+Build-Depends: debhelper (>> 3.0.0), python2.3-dev, python2.4-dev, libcurl3-gnutls-dev (>= 7.15.0-2)
 Standards-Version: 3.6.2
 
 Package: python2.3-pycurl
 Architecture: any
-Suggests: libcurl3-dev
+Suggests: libcurl3-gnutls-dev
 Depends: ${shlibs:Depends}, python2.3
 Description: Python bindings to libcurl
  This module provides the Python bindings to libcurl. Please refer to
- the libcurl documentation available in libcurl3-dev Debian package.
+ the libcurl documentation available in libcurl3-gnutls-dev Debian package.
+ .
+ NOTE: the SSL support is provided by GnuTLS.
  .
   Homepage: http://pycurl.sourceforge.net
 
 Package: python2.4-pycurl
 Architecture: any
-Suggests: libcurl3-dev
+Suggests: libcurl3-gnutls-dev
 Depends: ${shlibs:Depends}, python2.4
 Description: Python bindings to libcurl
  This module provides the Python bindings to libcurl. Please refer to
- the libcurl documentation available in libcurl3-dev Debian package.
+ the libcurl documentation available in libcurl3-gnutls-dev Debian package.
+ .
+ NOTE: the SSL support is provided by GnuTLS.
  .
   Homepage: http://pycurl.sourceforge.net

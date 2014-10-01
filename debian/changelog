@@ -1,3 +1,9 @@
+pycurl (7.16.4-1) unstable; urgency=low
+
+  * New upstream release.
+
+ -- Domenico Andreoli <cavok@debian.org>  Wed, 18 Jul 2007 17:54:16 +0200
+
 pycurl (7.16.2.1-3) unstable; urgency=low
 
   * Fixed package description (closes: #423905).

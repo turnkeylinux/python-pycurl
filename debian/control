@@ -3,7 +3,7 @@ Section: python
 Priority: extra
 Maintainer: Domenico Andreoli <cavok@debian.org>
 Uploaders: Matthias Klose <doko@debian.org>
-Build-Depends: debhelper (>= 5.0.37.1), python-all-dev (>= 2.3.5-9), python-all-dbg, python-central, libcurl4-gnutls-dev (>= 7.16.2-1)
+Build-Depends: debhelper (>= 5.0.37.1), python-all-dev (>= 2.3.5-9), python-all-dbg, python-central, libcurl4-gnutls-dev (>= 7.16.4-1)
 Standards-Version: 3.7.2
 XS-Python-Version: all
 

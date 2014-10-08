@@ -1,3 +1,9 @@
+pycurl (7.19.5-3) UNRELEASED; urgency=medium
+
+  * d/watch: Updated download URL to point to PyPI.
+
+ -- Barry Warsaw <barry@debian.org>  Tue, 07 Oct 2014 22:47:33 -0400
+
 pycurl (7.19.5-2) unstable; urgency=medium
 
   * d/control: Update the Vcs-* headers for the move to git-dpm.

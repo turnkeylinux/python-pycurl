@@ -2,6 +2,7 @@ From 9456098cc34953157aceccb4b235cf8201a900fe Mon Sep 17 00:00:00 2001
 From: Barry Warsaw <barry@python.org>
 Date: Tue, 14 Oct 2014 16:25:57 -0400
 Subject: upstream issue 210
+Bug: https://github.com/pycurl/pycurl/issues/210
 
 ---
  src/easy.c | 4 ++++

@@ -1,0 +1,25 @@
+From 9456098cc34953157aceccb4b235cf8201a900fe Mon Sep 17 00:00:00 2001
+From: Barry Warsaw <barry@python.org>
+Date: Tue, 14 Oct 2014 16:25:57 -0400
+Subject: upstream issue 210
+
+---
+ src/easy.c | 4 ++++
+ 1 file changed, 4 insertions(+)
+
+diff --git a/src/easy.c b/src/easy.c
+index 6f1ba1d..fe52b18 100644
+--- a/src/easy.c
++++ b/src/easy.c
+@@ -926,7 +926,11 @@ debug_callback(CURL *curlobj, curl_infotype type,
+     }
+ 
+     /* run callback */
++#if PY_MAJOR_VERSION >= 3
++    arglist = Py_BuildValue("(iy#)", (int)type, buffer, (int)total_size);
++#else
+     arglist = Py_BuildValue("(is#)", (int)type, buffer, (int)total_size);
++#endif
+     if (arglist == NULL)
+         goto verbose_error;
+     result = PyEval_CallObject(self->debug_cb, arglist);

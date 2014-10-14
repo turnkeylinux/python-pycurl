@@ -1,2 +1,3 @@
 10_setup.py.patch
 20_build_doc_for_debian.patch
+0003-upstream-issue-210.patch

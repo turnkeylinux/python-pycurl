@@ -1,10 +1,10 @@
-pycurl (7.19.5-3) UNRELEASED; urgency=medium
+pycurl (7.19.5-3) unstable; urgency=medium
 
   * d/watch: Updated download URL to point to PyPI.
   * d/patches/0003-upstream-issue-210.patch: Added a proposed fix for
     upstream issue #210.
 
- -- Barry Warsaw <barry@debian.org>  Tue, 07 Oct 2014 22:47:33 -0400
+ -- Barry Warsaw <barry@debian.org>  Tue, 14 Oct 2014 16:56:10 -0400
 
 pycurl (7.19.5-2) unstable; urgency=medium
 

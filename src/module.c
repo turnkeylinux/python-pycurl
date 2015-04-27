@@ -299,6 +299,8 @@ initpycurl(void)
         runtime_ssl_lib = "none/other";
     } else if (!strncmp(vi->ssl_version, "OpenSSL/", 8)) {
         runtime_ssl_lib = "openssl";
+    } else if (!strncmp(vi->ssl_version, "LibreSSL/", 9)) {
+        runtime_ssl_lib = "openssl";
     } else if (!strncmp(vi->ssl_version, "GnuTLS/", 7)) {
         runtime_ssl_lib = "gnutls";
     } else if (!strncmp(vi->ssl_version, "NSS/", 4)) {
@@ -501,7 +503,9 @@ initpycurl(void)
     insint_c(d, "PROXYTYPE_HTTP_1_0", CURLPROXY_HTTP_1_0);
 #endif
     insint_c(d, "PROXYTYPE_SOCKS4", CURLPROXY_SOCKS4);
+    insint_c(d, "PROXYTYPE_SOCKS4A", CURLPROXY_SOCKS4A);
     insint_c(d, "PROXYTYPE_SOCKS5", CURLPROXY_SOCKS5);
+    insint_c(d, "PROXYTYPE_SOCKS5_HOSTNAME", CURLPROXY_SOCKS5_HOSTNAME);
 
     /* curl_httpauth: constants for setopt(HTTPAUTH, x) */
     insint_c(d, "HTTPAUTH_NONE", CURLAUTH_NONE);
@@ -720,12 +724,15 @@ initpycurl(void)
     insint_c(d, "PROTO_DICT", CURLPROTO_DICT);
     insint_c(d, "PROTO_FILE", CURLPROTO_FILE);
     insint_c(d, "PROTO_TFTP", CURLPROTO_TFTP);
+#ifdef HAVE_CURL_7_20_0_OPTS
     insint_c(d, "PROTO_IMAP", CURLPROTO_IMAP);
     insint_c(d, "PROTO_IMAPS", CURLPROTO_IMAPS);
     insint_c(d, "PROTO_POP3", CURLPROTO_POP3);
     insint_c(d, "PROTO_POP3S", CURLPROTO_POP3S);
     insint_c(d, "PROTO_SMTP", CURLPROTO_SMTP);
     insint_c(d, "PROTO_SMTPS", CURLPROTO_SMTPS);
+#endif
+#ifdef HAVE_CURL_7_21_0_OPTS
     insint_c(d, "PROTO_RTSP", CURLPROTO_RTSP);
     insint_c(d, "PROTO_RTMP", CURLPROTO_RTMP);
     insint_c(d, "PROTO_RTMPT", CURLPROTO_RTMPT);
@@ -733,13 +740,23 @@ initpycurl(void)
     insint_c(d, "PROTO_RTMPTE", CURLPROTO_RTMPTE);
     insint_c(d, "PROTO_RTMPS", CURLPROTO_RTMPS);
     insint_c(d, "PROTO_RTMPTS", CURLPROTO_RTMPTS);
+#endif
+#ifdef HAVE_CURL_7_21_2_OPTS
     insint_c(d, "PROTO_GOPHER", CURLPROTO_GOPHER);
+#endif
     insint_c(d, "PROTO_ALL", CURLPROTO_ALL);
 #endif
 #ifdef HAVE_CURL_7_19_4_OPTS
     insint_c(d, "TFTP_BLKSIZE", CURLOPT_TFTP_BLKSIZE);
     insint_c(d, "SOCKS5_GSSAPI_SERVICE", CURLOPT_SOCKS5_GSSAPI_SERVICE);
     insint_c(d, "SOCKS5_GSSAPI_NEC", CURLOPT_SOCKS5_GSSAPI_NEC);
+#endif
+#ifdef HAVE_CURL_7_20_0_OPTS
+    insint_c(d, "MAIL_FROM", CURLOPT_MAIL_FROM);
+    insint_c(d, "MAIL_RCPT", CURLOPT_MAIL_RCPT);
+#endif
+#ifdef HAVE_CURL_7_25_0_OPTS
+    insint_c(d, "MAIL_AUTH", CURLOPT_MAIL_AUTH);
 #endif
 
     insint_c(d, "M_TIMERFUNCTION", CURLMOPT_TIMERFUNCTION);

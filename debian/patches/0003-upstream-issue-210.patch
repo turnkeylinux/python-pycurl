@@ -1,18 +1,17 @@
-From 9456098cc34953157aceccb4b235cf8201a900fe Mon Sep 17 00:00:00 2001
+From 7e232eecf5078c81d910a03717b440a5e2af7416 Mon Sep 17 00:00:00 2001
 From: Barry Warsaw <barry@python.org>
 Date: Tue, 14 Oct 2014 16:25:57 -0400
 Subject: upstream issue 210
-Bug: https://github.com/pycurl/pycurl/issues/210
 
 ---
  src/easy.c | 4 ++++
  1 file changed, 4 insertions(+)
 
 diff --git a/src/easy.c b/src/easy.c
-index 6f1ba1d..fe52b18 100644
+index e521de4..2a7d361 100644
 --- a/src/easy.c
 +++ b/src/easy.c
-@@ -926,7 +926,11 @@ debug_callback(CURL *curlobj, curl_infotype type,
+@@ -929,7 +929,11 @@ debug_callback(CURL *curlobj, curl_infotype type,
      }
  
      /* run callback */

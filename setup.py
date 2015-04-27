@@ -6,7 +6,7 @@
 
 PACKAGE = "pycurl"
 PY_PACKAGE = "curl"
-VERSION = "7.19.5"
+VERSION = "7.19.5.1"
 
 import glob, os, re, sys, string, subprocess
 import distutils
@@ -606,7 +606,7 @@ PycURL Windows options:
 '''
 
 if __name__ == "__main__":
-    if '--help' in sys.argv:
+    if '--help' in sys.argv or '-h' in sys.argv:
         # unfortunately this help precedes distutils help
         if sys.platform == "win32":
             print(windows_help)

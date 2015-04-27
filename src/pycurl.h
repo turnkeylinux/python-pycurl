@@ -84,10 +84,19 @@ pycurl_inet_ntop (int family, void *addr, char *string, size_t string_size);
 #define HAVE_CURL_7_19_6_OPTS
 #endif
 
+#if LIBCURL_VERSION_NUM >= 0x071400 /* check for 7.20.0 or greater */
+#define HAVE_CURL_7_20_0_OPTS
+#endif
+
 #if LIBCURL_VERSION_NUM >= 0x071500 /* check for 7.21.0 or greater */
 #define HAVE_CURLINFO_LOCAL_PORT
 #define HAVE_CURLINFO_PRIMARY_PORT
 #define HAVE_CURLINFO_LOCAL_IP
+#define HAVE_CURL_7_21_0_OPTS
+#endif
+
+#if LIBCURL_VERSION_NUM >= 0x071502 /* check for 7.21.2 or greater */
+#define HAVE_CURL_7_21_2_OPTS
 #endif
 
 #if LIBCURL_VERSION_NUM >= 0x071503 /* check for 7.21.3 or greater */
@@ -101,6 +110,10 @@ pycurl_inet_ntop (int family, void *addr, char *string, size_t string_size);
 #if LIBCURL_VERSION_NUM >= 0x071800 /* check for 7.24.0 or greater */
 #define HAVE_CURLOPT_DNS_SERVERS
 #define HAVE_CURL_7_24_0
+#endif
+
+#if LIBCURL_VERSION_NUM >= 0x071900 /* check for 7.25.0 or greater */
+#define HAVE_CURL_7_25_0_OPTS
 #endif
 
 #if LIBCURL_VERSION_NUM >= 0x071A00 /* check for 7.26.0 or greater */
@@ -288,6 +301,9 @@ typedef struct CurlObject {
     struct curl_slist *prequote;
 #ifdef HAVE_CURLOPT_RESOLVE
     struct curl_slist *resolve;
+#endif
+#ifdef HAVE_CURL_7_20_0_OPTS
+    struct curl_slist *mail_rcpt;
 #endif
     /* callbacks */
     PyObject *w_cb;

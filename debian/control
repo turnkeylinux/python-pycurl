@@ -16,7 +16,7 @@ Build-Depends: debhelper (>= 7.0.50~),
                python-sphinx,
                python3-all-dbg,
                python3-all-dev
-Standards-Version: 3.9.5
+Standards-Version: 3.9.6
 X-Python-Version: all
 X-Python3-Version: >= 3.3
 Homepage: http://pycurl.sourceforge.net

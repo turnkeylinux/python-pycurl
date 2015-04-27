@@ -1,10 +1,10 @@
-pycurl (7.19.5.1-1) UNRELEASED; urgency=medium
+pycurl (7.19.5.1-1) unstable; urgency=medium
 
   * New upstream release.
   * d/watch: Use pypi.debian.net mirror.
   * d/control: Bump Standards-Version to 3.9.6
 
- -- Barry Warsaw <barry@debian.org>  Mon, 27 Apr 2015 16:12:52 -0400
+ -- Barry Warsaw <barry@debian.org>  Mon, 27 Apr 2015 16:57:54 -0400
 
 pycurl (7.19.5-3) unstable; urgency=medium
 

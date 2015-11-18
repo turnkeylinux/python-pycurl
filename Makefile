@@ -25,7 +25,8 @@ RSYNC_FILES = \
 
 RSYNC_EXCLUDES = \
 	'--exclude=htdocs/download/' \
-	'--exclude=upload/Ignore/'
+	'--exclude=upload/Ignore/' \
+	'--exclude=htdocs/travis-deps/'
 
 RSYNC_TARGET = /home/groups/p/py/pycurl/
 
@@ -91,15 +92,10 @@ build-release: $(RELEASE_SOURCES)
 	PYCURL_RELEASE=1 $(PYTHON) setup.py build
 
 do-test:
-	mkdir -p tests/tmp
-	PYTHONSUFFIX=$$(python -V 2>&1 |awk '{print $$2}' |awk -F. '{print $$1 "." $$2}') && \
-	PYTHONPATH=$$(ls -d build/lib.*$$PYTHONSUFFIX):$$PYTHONPATH \
-	$(PYTHON) -c 'import pycurl; print(pycurl.version)'
-	PYTHONPATH=$$(ls -d build/lib.*$$PYTHONSUFFIX):$$PYTHONPATH \
-	$(NOSETESTS) -a '!standalone'
-	PYTHONPATH=$$(ls -d build/lib.*$$PYTHONSUFFIX):$$PYTHONPATH \
-	$(NOSETESTS) -a standalone
+	cd tests/fake-curl/libcurl && make
+	./tests/run.sh
 	./tests/ext/test-suite.sh
+	pyflakes python examples tests setup.py winbuild.py
 
 test: build do-test
 test-release: build-release do-test
@@ -124,7 +120,6 @@ clean:
 	-rm -f *.pyc *.pyo */*.pyc */*.pyo */*/*.pyc */*/*.pyo
 	-rm -f MANIFEST
 	-rm -f src/allpycurl.c $(GEN_SOURCES)
-	cd src && $(MAKE) clean
 
 distclean: clean
 
@@ -132,6 +127,9 @@ maintainer-clean: distclean
 
 dist sdist: distclean
 	$(PYTHON) setup.py sdist
+
+run-quickstart:
+	./tests/run-quickstart.sh
 
 # Rebuild missing or changed documentation.
 # Editing docstrings in Python or C source will not cause the documentation

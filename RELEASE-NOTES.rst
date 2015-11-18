@@ -1,6 +1,32 @@
 Release Notes
 =============
 
+PycURL 7.19.5.3 - 2015-11-04
+----------------------------
+
+PycURL 7.19.5.2 release did not include some of the test suite files in
+its manifest, leading to inability to run the test suite from the sdist
+tarball. This is now fixed thanks to Kamil Dudka.
+
+
+PycURL 7.19.5.2 - 2015-11-02
+----------------------------
+
+Breaking change: DEBUGFUNCTION now takes bytes rather than (Unicode) string
+as its argument on Python 3.
+
+Breaking change: CURLMOPT_* option constants moved from Easy to Multi
+class. They remain available in pycurl module.
+
+SSL library detection improved again, --libcurl-dll option to setup.py added.
+
+Options that required tuples now also accept lists, and vice versa.
+
+This release fixes several memory leaks and one use after free issue.
+
+Support for several new libcurl options and constants has been added.
+
+
 PycURL 7.19.5.1 - 2015-01-06
 ----------------------------
 

@@ -30,6 +30,12 @@ else:
         from StringIO import StringIO
     BytesIO = StringIO
     
+    # pyflakes workaround
+    # https://github.com/kevinw/pyflakes/issues/13
+    # https://bugs.launchpad.net/pyflakes/+bug/1308508/comments/3
+    if False:
+        unicode = object
+    
     # borrowed from six
     def b(s):
         '''Byte literal'''
@@ -100,6 +106,36 @@ def only_ssl(fn):
     
     return decorated
 
+def only_ssl_backends(*backends):
+    def decorator(fn):
+        import nose.plugins.skip
+        import pycurl
+        
+        @functools.wraps(fn)
+        def decorated(*args, **kwargs):
+            # easier to check that pycurl supports https, although
+            # theoretically it is not the same test.
+            # pycurl.version_info()[8] is a tuple of protocols supported by libcurl
+            if 'https' not in pycurl.version_info()[8]:
+                raise nose.plugins.skip.SkipTest('libcurl does not support ssl')
+            
+            # XXX move to pycurl library
+            if 'OpenSSL/' in pycurl.version:
+                current_backend = 'openssl'
+            elif 'GnuTLS/' in pycurl.version:
+                current_backend = 'gnutls'
+            elif 'NSS/' in pycurl.version:
+                current_backend = 'nss'
+            else:
+                current_backend = 'none'
+            if current_backend not in backends:
+                raise nose.plugins.skip.SkipTest('SSL backend is %s' % current_backend)
+            
+            return fn(*args, **kwargs)
+        
+        return decorated
+    return decorator
+
 def guard_unknown_libcurl_option(fn):
     '''Converts curl error 48, CURLE_UNKNOWN_OPTION, into a SkipTest
     exception. This is meant to be used with tests exercising libcurl
@@ -116,7 +152,8 @@ def guard_unknown_libcurl_option(fn):
             return fn(*args, **kwargs)
         except pycurl.error:
             exc = sys.exc_info()[1]
-            if exc.args[0] == pycurl.E_UNKNOWN_OPTION:
+            # E_UNKNOWN_OPTION is available as of libcurl 7.21.5
+            if hasattr(pycurl, 'E_UNKNOWN_OPTION') and exc.args[0] == pycurl.E_UNKNOWN_OPTION:
                 raise nose.plugins.skip.SkipTest('CURLE_UNKNOWN_OPTION, skipping test')
     
     return decorated

@@ -7,14 +7,17 @@
 #          concurrent connections>]
 #
 
-import sys, threading, Queue
+import sys, threading
+try:
+    import Queue
+except ImportError:
+    import queue as Queue
 import pycurl
 
 # We should ignore SIGPIPE when using pycurl.NOSIGNAL - see
 # the libcurl tutorial for more info.
 try:
     import signal
-    from signal import SIGPIPE, SIG_IGN
     signal.signal(signal.SIGPIPE, signal.SIG_IGN)
 except ImportError:
     pass

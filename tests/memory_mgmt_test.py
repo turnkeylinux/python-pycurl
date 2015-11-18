@@ -5,9 +5,12 @@
 import pycurl
 import unittest
 import gc
+import flaky
+from . import util
 
 debug = False
 
+@flaky.flaky(max_runs=3)
 class MemoryMgmtTest(unittest.TestCase):
     def maybe_enable_debug(self):
         if debug:
@@ -258,4 +261,40 @@ class MemoryMgmtTest(unittest.TestCase):
         
         gc.collect()
         new_object_count = len(gc.get_objects())
-        self.assertEqual(new_object_count, object_count)
+        # it seems that GC sometimes collects something that existed
+        # before this test ran, GH issues #273/#274
+        self.assertTrue(new_object_count in (object_count, object_count-1))
+
+    def test_postfields_unicode_memory_leak_gh252(self):
+        # this test passed even before the memory leak was fixed,
+        # not sure why.
+        
+        c = pycurl.Curl()
+        gc.collect()
+        before_object_count = len(gc.get_objects())
+
+        for i in range(100000):
+            c.setopt(pycurl.POSTFIELDS, util.u('hello world'))
+        
+        gc.collect()
+        after_object_count = len(gc.get_objects())
+        self.assert_(after_object_count <= before_object_count + 1000, 'Grew from %d to %d objects' % (before_object_count, after_object_count))
+    
+    def test_form_bufferptr_memory_leak_gh267(self):
+        c = pycurl.Curl()
+        gc.collect()
+        before_object_count = len(gc.get_objects())
+
+        for i in range(100000):
+            c.setopt(pycurl.HTTPPOST, [
+                # Newer versions of libcurl accept FORM_BUFFERPTR
+                # without FORM_BUFFER and reproduce the memory leak;
+                # libcurl 7.19.0 requires FORM_BUFFER to be given before
+                # FORM_BUFFERPTR.
+                ("post1", (pycurl.FORM_BUFFER, 'foo.txt', pycurl.FORM_BUFFERPTR, "data1")),
+                ("post2", (pycurl.FORM_BUFFER, 'bar.txt', pycurl.FORM_BUFFERPTR, "data2")),
+            ])
+        
+        gc.collect()
+        after_object_count = len(gc.get_objects())
+        self.assert_(after_object_count <= before_object_count + 1000, 'Grew from %d to %d objects' % (before_object_count, after_object_count))

@@ -1,4 +1,4 @@
-From a4111adc2a24bfd0f2c7ebc0a4b6f0c67a6e3434 Mon Sep 17 00:00:00 2001
+From 581f359bda50217fd57d6b042f28feedc16dae01 Mon Sep 17 00:00:00 2001
 From: Sandro Tosi <morph@debian.org>
 Date: Tue, 30 Sep 2014 17:38:05 -0400
 Subject: Adapt documentation build process for Debian packaging purposes
@@ -12,10 +12,10 @@ Patch-Name: 20_build_doc_for_debian.patch
  1 file changed, 1 insertion(+)
 
 diff --git a/Makefile b/Makefile
-index 99120e7..5a2ba47 100644
+index c7f2370..6a9a588 100644
 --- a/Makefile
 +++ b/Makefile
-@@ -142,6 +142,7 @@ docs: build
+@@ -140,6 +140,7 @@ docs: build
  	PYTHONSUFFIX=$$(python -V 2>&1 |awk '{print $$2}' |awk -F. '{print $$1 "." $$2}') && \
  	PYTHONPATH=$$(ls -d build/lib.*$$PYTHONSUFFIX):$$PYTHONPATH \
  	sphinx-build doc build/doc

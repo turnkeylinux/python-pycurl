@@ -6,7 +6,6 @@
 # the libcurl tutorial for more info.
 try:
     import signal
-    from signal import SIGPIPE, SIG_IGN
     signal.signal(signal.SIGPIPE, signal.SIG_IGN)
 except ImportError:
     pass
@@ -22,6 +21,9 @@ try:
 except ImportError:
     import xmlrpc.client as xmlrpclib
 import pycurl
+import sys
+
+PY3 = sys.version_info[0] > 2
 
 
 class CURLTransport(xmlrpclib.Transport):
@@ -48,7 +50,10 @@ class CURLTransport(xmlrpclib.Transport):
         self.verbose = verbose
         try:
            self.c.perform()
-        except pycurl.error, v:
+        except pycurl.error:
+            v = sys.exc_info()[1]
+            if PY3:
+                v = v.args
             raise xmlrpclib.ProtocolError(
                 host + handler,
                 v[0], v[1], None
@@ -64,5 +69,6 @@ if __name__ == "__main__":
     print(server)
     try:
         print(server.examples.getStateName(41))
-    except xmlrpclib.Error, v:
+    except xmlrpclib.Error:
+        v = sys.exc_info()[1]
         print("ERROR", v)

@@ -1,3 +1,6 @@
+# -*- coding: utf-8 -*-
+# vi:ts=4:et
+
 import time as _time, sys
 import bottle
 try:
@@ -15,7 +18,7 @@ def ok():
     return 'success'
 
 @app.route('/short_wait')
-def ok():
+def short_wait():
     _time.sleep(0.1)
     return 'success'
 
@@ -37,7 +40,7 @@ def raw_utf8():
     return json.dumps(data)
 
 # XXX file is not a bottle FileUpload instance, but FieldStorage?
-def convert_file(key, file):
+def xconvert_file(key, file):
     return {
         'key': key,
         'name': file.name,
@@ -84,7 +87,7 @@ def header():
 # back into latin1 to obtain original bytestring, then decode it in utf-8.
 # Thanks to bdarnell for the idea: https://github.com/pycurl/pycurl/issues/124
 @app.route('/header_utf8')
-def header():
+def header_utf8():
     header_value = bottle.request.headers[bottle.request.query['h']]
     if py3:
         # header_value is a string, headers are decoded in latin1
@@ -111,3 +114,8 @@ def pause_writer():
 @app.route('/pause')
 def pause():
     return pause_writer()
+
+@app.route('/utf8_body')
+def utf8_body():
+    # bottle encodes the body
+    return 'Дружба народов'

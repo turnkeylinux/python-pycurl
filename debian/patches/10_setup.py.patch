@@ -1,4 +1,4 @@
-From 7a42ba2efaaf5953e91d9dac5c0c6dde7fffdfda Mon Sep 17 00:00:00 2001
+From dcaaf657bc3f86c181948fba7260f2bf7183b23f Mon Sep 17 00:00:00 2001
 From: Sandro Tosi <morph@debian.org>
 Date: Tue, 30 Sep 2014 17:38:05 -0400
 Subject: Adjust setup.py file for Debian architecture
@@ -9,12 +9,12 @@ Patch-Name: 10_setup.py.patch
  1 file changed, 1 insertion(+), 1 deletion(-)
 
 diff --git a/setup.py b/setup.py
-index 9cb0667..90f5b04 100644
+index e16e6d6..dfd123f 100644
 --- a/setup.py
 +++ b/setup.py
-@@ -54,7 +54,7 @@ def scan_argv(s, default=None):
- class ExtensionConfiguration(object):
-     def __init__(self):
+@@ -60,7 +60,7 @@ class ExtensionConfiguration(object):
+         self.argv = argv
+         self.original_argv = argv[:]
          self.include_dirs = []
 -        self.define_macros = [("PYCURL_VERSION", '"%s"' % VERSION)]
 +        self.define_macros = [("PYCURL_VERSION", '"%s"' % VERSION), ('HAVE_CURL_GNUTLS', 1) ]

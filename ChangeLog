@@ -1,3 +1,96 @@
+Version 7.19.5.3 [requires libcurl-7.19.0 or better] - 2015-11-03
+-----------------------------------------------------------------
+
+        * python and nosetests binaries can now be overridden when running
+          the test suite (patch by Kamil Dudka).
+
+        * Files needed to run the test suite are distributed in sdist
+          (patch by Kamil Dudka).
+
+
+Version 7.19.5.2 [requires libcurl-7.19.0 or better] - 2015-11-02
+-----------------------------------------------------------------
+
+        * C sources made 64-bit clean on Windows.
+
+        * Support for building against Python 3.5 added to winbuild.py.
+
+        * Fixed build on Windows when using MS SDK 8.1+ or MSVC 14/2015
+          (patch by Gisle Vanem).
+
+        * Added automatic SSL library detection on CentOS 6 by loading
+          libcurl shared library in setup.py. This automatic detection is
+          meant to permit installing pycurl seamlessly via `pip install pycurl`
+          on CentOS; as such, it is only employed when no other configuration
+          options or configuration environment variables are given to setup.py
+          (original patch by Francisco Alves).
+
+        * Added --libcurl-dll option to setup.py to take SSL library
+          information out of libcurl shared library (original patch by
+          Francisco Alves). This option is only usable
+          with Python 2.5 or higher.
+
+        * --with-ssl, --with-gnutls and --with-nss options to setup.py now
+          result in PycURL explicitly linking against the respective SSL
+          library. Previously setup.py relied on curl-config to supply the
+          needed libraries in this case.
+
+        * List and tuples are now accepted in all positions of HTTPPOST
+          option values.
+
+        * Tuples are now accepted for options taking list values (e.g.
+          HTTPHEADER).
+
+        * Fixed a use after free in HTTPPOST when using FORM_BUFFERPTR with
+          a Unicode string (patch by Clint Clayton).
+
+        * Fixed a memory leak in HTTPPOST for multiple FORM_BUFFERPTR
+          (patch by Clint Clayton).
+
+        * CURLMOPT_* option constants were mistakenly defined on Curl
+          instances but not on CurlMulti instances. These option constants
+          are now defined on CurlMulti instances and on pycurl module,
+          but not on Curl instances.
+
+        * Fixed several memory leaks when setting string options to
+          Unicode values failed.
+
+        * Fixed a memory leak when using POSTFIELDS with unicode objects
+          on Python 2 (patch by Clint Clayton).
+
+        * Official support for Python 2.4 and 2.5 dropped. PycURL is no
+          longer tested against these Python versions on Travis.
+
+        * Added CURLAUTH_NEGOTIATE (libcurl 7.38.0+), CURLAUTH_NTLM_WB
+          (libcurl 7.22.0+), CURLAUTH_ONLY (libcurl 7.21.3+),
+
+        * Added CURLOPT_SERVICE_NAME (libcurl 7.43.0+).
+
+        * Added CURLOPT_PROXY_SERVICE_NAME (libcurl 7.43.0+).
+
+        * Added CURLE_SSL_CRL_BADFILE, CURLE_SSL_INVALIDCERTSTATUS
+          (libcurl 7.41.0+), CURLE_SSL_ISSUER_ERROR and
+          CURLE_SSL_PINNEDPUBKEYNOTMATCH (libcurl 7.39.0+).
+
+        * Added CURLOPT_SSL_VERIFYSTATUS (libcurl 7.41.0+).
+
+        * Added CURL_SSLVERSION_TLSv1_0, CURL_SSLVERSION_TLSv1_1
+          and CURL_SSLVERSION_TLSv1_2 (libcurl 7.34.0+).
+
+        * The second argument of DEBUGFUNCTION callback is now of type bytes on
+          Python 3. When response body contains non-ASCII data and
+          DEBUGFUNCTION is enabled, this argument would receive non-ASCII data.
+          Which encoding this data is in is unknown by PycURL, and e.g. in
+          the case of HTTP requires parsing response headers. GitHub issue
+          #210, patch by Barry Warsaw with help from Gregory Petukhov.
+
+        * Fixed build on GCC 4.4.5 (patch by Travis Jensen).
+
+        * Added CURLOPT_GSSAPI_DELEGATION, CURLGSSAPI_DELEGATION_FLAG,
+          CURLGSSAPI_DELEGATION_NONE and CURLGSSAPI_DELEGATION_POLICY_FLAG
+          (libcurl 7.22.0+, patch by Dmitry Ketov).
+
+
 Version 7.19.5.1 [requires libcurl-7.19.0 or better] - 2015-01-06
 -----------------------------------------------------------------
 
@@ -5,7 +98,7 @@ Version 7.19.5.1 [requires libcurl-7.19.0 or better] - 2015-01-06
 
         * setup.py now prints PycURL-specific option help when -h is used.
 
-        * LibreSSL is now supported (patch by JiCiT.)
+        * LibreSSL is now supported (patch by JiCiT).
 
         * Fixed an oversight that broke PycURL building against libcurl 7.19.4
           through 7.21.1. The bug was introduced in PycURL 7.19.5.
@@ -15,6 +108,7 @@ Version 7.19.5.1 [requires libcurl-7.19.0 or better] - 2015-01-06
 
         * Added CURLOPT_MAIL_FROM and CURLOPT_MAIL_RCPT (libcurl 7.20.0+)
           and CURLOPT_MAIL_AUTH (libcurl 7.25.0+).
+
 
 Version 7.19.5 [requires libcurl-7.21.2 or better] - 2014-07-12
 ---------------------------------------------------------------
@@ -77,6 +171,7 @@ Version 7.19.5 [requires libcurl-7.21.2 or better] - 2014-07-12
 
         * Documentation is now processed by sphinx.
 
+
 Version 7.19.3.1 [requires libcurl-7.19.0 or better] - 2014-02-05
 -----------------------------------------------------------------
 
@@ -92,6 +187,7 @@ Version 7.19.3.1 [requires libcurl-7.19.0 or better] - 2014-02-05
           even if `curl-config --libs` succeeded. This should achieve
           pre-7.19.3 behavior with respect to automatic SSL detection
           (patch by Andjelko Horvat).
+
 
 Version 7.19.3 [requires libcurl-7.19.0 or better] - 2014-01-09
 ---------------------------------------------------------------
@@ -184,12 +280,14 @@ Version 7.19.3 [requires libcurl-7.19.0 or better] - 2014-01-09
           be modified to accept this new argument.
           https://github.com/pycurl/pycurl/pull/18
 
+
 Version 7.19.0.3 [requires libcurl-7.19.0 or better] - 2013-12-24
 -----------------------------------------------------------------
 
         * Re-release of 7.19.0.2 with minor changes to build Windows packages
           due to botched 7.19.0.2 files on PyPi.
           http://curl.haxx.se/mail/curlpython-2013-12/0021.html
+
 
 Version 7.19.0.2 [requires libcurl-7.19.0 or better] - 2013-10-08
 -----------------------------------------------------------------
@@ -202,6 +300,7 @@ Version 7.19.0.2 [requires libcurl-7.19.0 or better] - 2013-10-08
         * Added support for libcurl pause/unpause functionality,
           via curl_easy_pause call and returning READFUNC_PAUSE from
           read callback function.
+
 
 Version 7.19.0.1 [requires libcurl-7.19.0 or better] - 2013-09-23
 -----------------------------------------------------------------

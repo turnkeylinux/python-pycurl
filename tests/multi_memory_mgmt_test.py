@@ -5,9 +5,11 @@
 import pycurl
 import unittest
 import gc
+import flaky
 
 debug = False
 
+@flaky.flaky(max_runs=3)
 class MultiMemoryMgmtTest(unittest.TestCase):
     def test_opensocketfunction_collection(self):
         self.check_callback(pycurl.M_SOCKETFUNCTION)
@@ -32,4 +34,6 @@ class MultiMemoryMgmtTest(unittest.TestCase):
         
         gc.collect()
         new_object_count = len(gc.get_objects())
-        self.assertEqual(new_object_count, object_count)
+        # it seems that GC sometimes collects something that existed
+        # before this test ran, GH issues #273/#274
+        self.assertTrue(new_object_count in (object_count, object_count-1))

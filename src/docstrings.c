@@ -145,10 +145,11 @@ values of different types:\n\
     c.setopt(pycurl.URL, b\"http://www.python.org/\")\n\
 \n\
 - ``HTTP200ALIASES``, ``HTTPHEADER``, ``POSTQUOTE``, ``PREQUOTE`` and\n\
-  ``QUOTE`` accept a list of strings. The same rules apply to the strings\n\
-  as do to string option values. Example::\n\
+  ``QUOTE`` accept a list or tuple of strings. The same rules apply to these\n\
+  strings as do to string option values. Example::\n\
 \n\
     c.setopt(pycurl.HTTPHEADER, [\"Accept:\"])\n\
+    c.setopt(pycurl.HTTPHEADER, (\"Accept:\",))\n\
 \n\
 - ``READDATA`` accepts a file object or any Python object which has\n\
   a ``read`` method. On Python 2, a file object will be passed directly\n\
@@ -233,6 +234,14 @@ object).\n\
 \n\
 .. _curl_multi_add_handle:\n\
     http://curl.haxx.se/libcurl/c/curl_multi_add_handle.html";
+
+PYCURL_INTERNAL const char multi_assign_doc[] = "assign(sockfd, object) -> None\n\
+\n\
+Creates an association in the multi handle between the given socket and\n\
+a private object in the application.\n\
+Corresponds to `curl_multi_assign`_ in libcurl.\n\
+\n\
+.. _curl_multi_assign: http://curl.haxx.se/libcurl/c/curl_multi_assign.html";
 
 PYCURL_INTERNAL const char multi_close_doc[] = "close() -> None\n\
 \n\
@@ -328,15 +337,64 @@ Example usage::\n\
             ret, num_handles = m.perform()\n\
             if ret != pycurl.E_CALL_MULTI_PERFORM: break";
 
-PYCURL_INTERNAL const char multi_socket_action_doc[] = "socket_action(sockfd, ev_bitmask) -> Tuple.\n\
+PYCURL_INTERNAL const char multi_setopt_doc[] = "setopt(option, value) -> None\n\
+\n\
+Set curl multi option. Corresponds to `curl_multi_setopt`_ in libcurl.\n\
+\n\
+*option* specifies which option to set. PycURL defines constants\n\
+corresponding to ``CURLMOPT_*`` constants in libcurl, except that\n\
+the ``CURLMOPT_`` prefix is replaced with ``M_`` prefix.\n\
+For example, ``CURLMOPT_PIPELINING`` is\n\
+exposed in PycURL as ``pycurl.M_PIPELINING``. For convenience, ``CURLMOPT_*``\n\
+constants are also exposed on CurlMulti objects::\n\
+\n\
+    import pycurl\n\
+    m = pycurl.CurlMulti()\n\
+    m.setopt(pycurl.M_PIPELINING, 1)\n\
+    # Same as:\n\
+    m.setopt(m.M_PIPELINING, 1)\n\
+\n\
+*value* specifies the value to set the option to. Different options accept\n\
+values of different types:\n\
+\n\
+- Options specified by `curl_multi_setopt`_ as accepting ``1`` or an\n\
+  integer value accept Python integers, long integers (on Python 2.x) and\n\
+  booleans::\n\
+\n\
+    m.setopt(pycurl.M_PIPELINING, True)\n\
+    m.setopt(pycurl.M_PIPELINING, 1)\n\
+    # Python 2.x only:\n\
+    m.setopt(pycurl.M_PIPELINING, 1L)\n\
+\n\
+- ``*FUNCTION`` options accept a function. Supported callbacks are\n\
+  ``CURLMOPT_SOCKETFUNCTION`` AND ``CURLMOPT_TIMERFUNCTION``. Please refer to\n\
+  the PycURL test suite for examples on using the callbacks.\n\
+\n\
+Raises TypeError when the option value is not of a type accepted by the\n\
+respective option, and pycurl.error exception when libcurl rejects the\n\
+option or its value.\n\
+\n\
+.. _curl_multi_setopt: http://curl.haxx.se/libcurl/c/curl_multi_setopt.html";
+
+PYCURL_INTERNAL const char multi_socket_action_doc[] = "socket_action(sockfd, ev_bitmask) -> tuple\n\
 \n\
 Returns result from doing a socket_action() on the curl multi file descriptor\n\
-with the given timeout.";
+with the given timeout.\n\
+Corresponds to `curl_multi_socket_action`_ in libcurl.\n\
+\n\
+.. _curl_multi_socket_action: http://curl.haxx.se/libcurl/c/curl_multi_socket_action.html";
 
 PYCURL_INTERNAL const char multi_socket_all_doc[] = "socket_all() -> Tuple.\n\
 \n\
 Returns result from doing a socket_all() on the curl multi file descriptor\n\
 with the given timeout.";
+
+PYCURL_INTERNAL const char multi_timeout_doc[] = "timeout() -> int\n\
+\n\
+Returns how long to wait for action before proceeding.\n\
+Corresponds to `curl_multi_timeout`_ in libcurl.\n\
+\n\
+.. _curl_multi_timeout: http://curl.haxx.se/libcurl/c/curl_multi_timeout.html";
 
 PYCURL_INTERNAL const char pycurl_global_cleanup_doc[] = "global_cleanup() -> None\n\
 \n\

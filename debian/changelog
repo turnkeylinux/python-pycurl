@@ -1,3 +1,9 @@
+pycurl (7.19.5.3-1) UNRELEASED; urgency=medium
+
+  * New upstream release.
+
+ -- Barry Warsaw <barry@debian.org>  Wed, 18 Nov 2015 13:22:00 -0500
+
 pycurl (7.19.5.1-1) unstable; urgency=medium
 
   * New upstream release.

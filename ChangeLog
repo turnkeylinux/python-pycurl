@@ -1,3 +1,81 @@
+Version 7.21.5 [requires libcurl-7.19.0 or better] - 2016-01-05
+---------------------------------------------------------------
+
+        * --with-openssl and its --win-ssl alias setup.py options are now
+          accepted under Windows in order to use OpenSSL's crypto locks
+          when building against OpenSSL.
+
+        * --with-openssl added as an alias for --with-ssl option to setup.py.
+
+        * Official Windows builds are now linked against C-Ares and libssh2.
+
+        * Official Windows builds are now linked against OpenSSL instead of
+          WinSSL.
+
+        * Official Windows builds are now statically linked against
+          their dependencies (libcurl and zlib).
+
+        * Added CURLOPT_USE_SSL and CURLUSESSL_* constants.
+
+        * Added CURLOPT_APPEND, CURLOPT_COOKIESESSION, CURLOPT_DIRLISTONLY,
+          CURLOPT_KEYPASSWD, CURLOPT_TELNETOPTIONS.
+
+        * Several CURLE_* and CURLM_* constants added.
+
+        * Add VERSION_* constants, corresponding to CURL_VERSION_*.
+
+        * Breaking change: OPENSOCKETFUNCTION callback API now mirrors that
+          of libcurl:
+          1. The callback now takes two arguments, `purpose' and `address`.
+             Previously the callback took `family', `socktype', `protocol`
+             and `addr' arguments.
+          2. The second argument to the callback, `address', is a
+             `namedtuple' with `family', `socktype', `protocol' and
+             `addr' fields.
+          3. `addr' field on `address' for AF_INET6 family addresses is a
+             4-tuple of (address, port, flow info, scope id) which matches
+             Python's `socket.getaddrinfo' API.
+
+          It seems that libcurl may mishandle error return from an
+          opensocket callback, as would happen when code written for
+          pre-PycURL 7.21.5 API is run with PycURL 7.21.5 or newer,
+          resulting in the application hanging.
+
+        * OPENSOCKETFUNCTION callback can now be unset.
+
+        * Added CURLOPT_CLOSESOCKETFUNCTION (libcurl 7.21.7+).
+          CURLOPT_CLOSESOCKETDATA is used internally by PycURL.
+
+        * Added CURLOPT_SOCKOPTFUNCTION. CURLOPT_SOCKOPTDATA is used
+          internally by PycURL.
+
+        * Added CURLOPT_SSH_KEYFUNCTION (libcurl 7.19.6+).
+          CURLOPT_SSH_KEYDATA is used internally by PycURL.
+
+        * Added CURLOPT_SSL_OPTIONS (libcurl 7.25.0+).
+
+        * Added CURLOPT_KRBLEVEL.
+
+        * Added CURLOPT_SSL_FALSESTART (libcurl 7.42.0+).
+
+        * Added CURLOPT_SSL_ENABLE_NPN (libcurl 7.36.0+).
+
+        * Added CURLOPT_SSL_ENABLE_ALPN (libcurl 7.36.0+).
+
+        * Added CURLOPT_UNIX_SOCKET_PATH (libcurl 7.40.0+).
+
+        * Added CURLOPT_WILDCARDMATCH (libcurl 7.21.0+).
+
+        * C module initialization changed to raise exceptions on failure
+          rather than trigger a fatal error and abort the Python interpreter.
+
+        * Added CURLOPT_PINNEDPUBLICKEY (libcurl 7.39.0-7.44.0+
+          depending on SSL backend and encoding algorithm).
+
+        * Fixed incorrect detection of libcurl 7.19.5 and 7.19.6
+          (thanks to bataniya).
+
+
 Version 7.19.5.3 [requires libcurl-7.19.0 or better] - 2015-11-03
 -----------------------------------------------------------------
 

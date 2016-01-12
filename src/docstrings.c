@@ -185,13 +185,13 @@ values of different types:\n\
 \n\
 It is possible to set integer options - and only them - that PycURL does\n\
 not know about by using the numeric value of the option constant directly.\n\
-For example, ``pycurl.VERBOSE`` has the value 42, and may be set as follows:\n\
+For example, ``pycurl.VERBOSE`` has the value 42, and may be set as follows::\n\
 \n\
     c.setopt(42, 1)\n\
 \n\
 *setopt* can reset an option to its default value, performing the job of\n\
 :py:meth:`pycurl.Curl.unsetopt`, if ``None`` is passed\n\
-for the option value. The following two calls are equivalent:\n\
+for the option value. The following two calls are equivalent::\n\
 \n\
     c.setopt(c.URL, None)\n\
     c.unsetopt(c.URL)\n\

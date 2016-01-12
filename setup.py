@@ -6,7 +6,7 @@
 
 PACKAGE = "pycurl"
 PY_PACKAGE = "curl"
-VERSION = "7.19.5.3"
+VERSION = "7.21.5"
 
 import glob, os, re, sys, subprocess
 import distutils
@@ -191,6 +191,7 @@ class ExtensionConfiguration(object):
             else:
                 raise ConfigurationError('Invalid value "%s" for PYCURL_SSL_LIBRARY' % ssl_lib)
         ssl_options = {
+            '--with-openssl': self.using_openssl,
             '--with-ssl': self.using_openssl,
             '--with-gnutls': self.using_gnutls,
             '--with-nss': self.using_nss,
@@ -214,14 +215,14 @@ class ExtensionConfiguration(object):
                 self.library_dirs.append(arg[2:])
             else:
                 self.extra_link_args.append(arg)
-        
+
         # ssl detection - ssl libraries are added
         if not ssl_lib_detected:
             libcurl_dll_path = scan_argv(self.argv, "--libcurl-dll=")
             if libcurl_dll_path is not None:
                 if self.detect_ssl_lib_from_libcurl_dll(libcurl_dll_path):
                     ssl_lib_detected = True
-            
+
         if not ssl_lib_detected:
             for arg in split_quoted(sslhintbuf):
                 if arg[:2] == "-l":
@@ -237,14 +238,14 @@ class ExtensionConfiguration(object):
                         self.using_nss()
                         ssl_lib_detected = True
                         break
-        
+
         if not ssl_lib_detected and len(self.argv) == len(self.original_argv) \
                 and not os.environ.get('PYCURL_CURL_CONFIG') \
                 and not os.environ.get('PYCURL_SSL_LIBRARY'):
             # this path should only be taken when no options or
             # configuration environment variables are given to setup.py
             ssl_lib_detected = self.detect_ssl_lib_on_centos6()
-        
+
         if not ssl_lib_detected:
             p = subprocess.Popen((CURL_CONFIG, '--features'),
                 stdout=subprocess.PIPE, stderr=subprocess.PIPE)
@@ -316,7 +317,8 @@ class ExtensionConfiguration(object):
 
         # libcurl windows documentation states that for linking against libcurl
         # dll, the import library name is libcurl_imp.lib.
-        # in practice, the library name sometimes is libcurl.lib.
+        # For libcurl 7.46.0, the library name is libcurl.lib.
+        # And static library name is libcurl_a.lib by default as of libcurl 7.46.0.
         # override with: --libcurl-lib-name=libcurl_imp.lib
         curl_lib_name = scan_argv(self.argv, '--libcurl-lib-name=', 'libcurl.lib')
 
@@ -334,6 +336,9 @@ class ExtensionConfiguration(object):
         if not os.path.exists(libcurl_lib_path):
             fail("libcurl.lib does not exist at %s.\nCurl directory must point to compiled libcurl (bin/include/lib subdirectories): %s" %(libcurl_lib_path, curl_dir))
         self.extra_objects.append(libcurl_lib_path)
+
+        if scan_argv(self.argv, '--with-openssl') is not None or scan_argv(self.argv, '--with-ssl') is not None:
+            self.using_openssl()
 
         self.check_avoid_stdio()
 
@@ -367,10 +372,10 @@ class ExtensionConfiguration(object):
             self.extra_compile_args.append("-DPYCURL_AVOID_STDIO")
         if scan_argv(self.argv, '--avoid-stdio') is not None:
             self.extra_compile_args.append("-DPYCURL_AVOID_STDIO")
-    
+
     def get_curl_version_info(self, dll_path):
         import ctypes
-        
+
         class curl_version_info_struct(ctypes.Structure):
             _fields_ = [
                 ('age', ctypes.c_int),
@@ -388,29 +393,33 @@ class ExtensionConfiguration(object):
                 ('iconv_ver_num', ctypes.c_int),
                 ('libssh_version', ctypes.c_char_p),
             ]
-        
+
         dll = ctypes.CDLL(dll_path)
         fn = dll.curl_version_info
         fn.argtypes = [ctypes.c_int]
         fn.restype = ctypes.POINTER(curl_version_info_struct)
-        
+
         # current version is 3
         return fn(3)[0]
-    
+
     def using_openssl(self):
         self.define_macros.append(('HAVE_CURL_OPENSSL', 1))
-        # the actual library that defines CRYPTO_num_locks etc.
-        # is crypto, and on cygwin linking against ssl does not
-        # link against crypto as of May 2014.
-        # http://stackoverflow.com/questions/23687488/cant-get-pycurl-to-install-on-cygwin-missing-openssl-symbols-crypto-num-locks
-        self.libraries.append('crypto')
+        if sys.platform == "win32":
+            # CRYPTO_num_locks is defined in libeay32.lib
+            self.extra_link_args.append('libeay32.lib')
+        else:
+            # the actual library that defines CRYPTO_num_locks etc.
+            # is crypto, and on cygwin linking against ssl does not
+            # link against crypto as of May 2014.
+            # http://stackoverflow.com/questions/23687488/cant-get-pycurl-to-install-on-cygwin-missing-openssl-symbols-crypto-num-locks
+            self.libraries.append('crypto')
         self.define_macros.append(('HAVE_CURL_SSL', 1))
-    
+
     def using_gnutls(self):
         self.define_macros.append(('HAVE_CURL_GNUTLS', 1))
         self.libraries.append('gnutls')
         self.define_macros.append(('HAVE_CURL_SSL', 1))
-    
+
     def using_nss(self):
         self.define_macros.append(('HAVE_CURL_NSS', 1))
         self.libraries.append('ssl3')
@@ -453,8 +462,8 @@ def get_bdist_msi_version_hack():
 def strip_pycurl_options(argv):
     if sys.platform == 'win32':
         options = [
-            '--curl-dir=', '--curl-lib-name=', '--use-libcurl-dll',
-            '--avoid-stdio',
+            '--curl-dir=', '--libcurl-lib-name=', '--use-libcurl-dll',
+            '--avoid-stdio', '--with-openssl',
         ]
     else:
         options = ['--openssl-dir=', '--curl-config=', '--avoid-stdio']
@@ -689,7 +698,8 @@ PycURL Unix options:
  --curl-config=/path/to/curl-config  use specified curl-config binary
  --libcurl-dll=[/path/to/]libcurl.so obtain SSL library from libcurl.so
  --openssl-dir=/path/to/openssl/dir  path to OpenSSL headers and libraries
- --with-ssl                          libcurl is linked against OpenSSL
+ --with-openssl                      libcurl is linked against OpenSSL
+ --with-ssl                          legacy alias for --with-openssl
  --with-gnutls                       libcurl is linked against GnuTLS
  --with-nss                          libcurl is linked against NSS
 '''
@@ -700,6 +710,8 @@ PycURL Windows options:
  --use-libcurl-dll                     link against libcurl DLL, if not given
                                        link against libcurl statically
  --libcurl-lib-name=libcurl_imp.lib    override libcurl import library name
+ --with-openssl                        libcurl is linked against OpenSSL
+ --with-ssl                            legacy alias for --with-openssl
 '''
 
 if __name__ == "__main__":

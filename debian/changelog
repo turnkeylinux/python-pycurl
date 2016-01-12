@@ -1,3 +1,10 @@
+pycurl (7.21.5-1) UNRELEASED; urgency=medium
+
+  * New upstream release.
+  * d/tests/control: Add a smoketest for Python 2 and 3.
+
+ -- Barry Warsaw <barry@debian.org>  Tue, 12 Jan 2016 14:28:41 -0500
+
 pycurl (7.19.5.3-1.1) unstable; urgency=medium
 
   * Non-maintainer upload.

@@ -51,7 +51,11 @@ It will then fail at runtime as follows::
 
 To fix this, you need to tell ``setup.py`` what SSL backend is used::
 
-    python setup.py --with-[ssl|gnutls|nss] install
+    python setup.py --with-[openssl|gnutls|nss] install
+
+Note: as of PycURL 7.21.5, setup.py accepts ``--with-openssl`` option to
+indicate that libcurl is built against OpenSSL. ``--with-ssl`` is an alias
+for ``--with-openssl`` and continues to be accepted for backwards compatibility.
 
 You can also ask ``setup.py`` to obtain SSL backend information from installed
 libcurl shared library, as follows:
@@ -82,10 +86,6 @@ note above)::
     export PYCURL_SSL_LIBRARY=[openssl|gnutls|nss]
     easy_install pycurl
 
-Please note the difference in spelling that concerns OpenSSL: the command-line
-argument is --with-ssl, to match libcurl, but the environment variable value is
-"openssl".
-
 
 pip and cached pycurl package
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -99,23 +99,24 @@ To force pip to recompile pycurl, run::
 
     # upgrade pip if necessary
     pip install --upgrade pip
-    
+
     # remove current pycurl
     pip remove pycurl
-    
+
     # set PYCURL_SSL_LIBRARY
     export PYCURL_SSL_LIBRARY=nss
-    
+
     # recompile and install pycurl
     pip install --compile pycurl
 
 .. _this Stack Overflow post: http://stackoverflow.com/questions/21487278/ssl-error-installing-pycurl-after-ssl-is-set
 
+
 Windows
 -------
 
 Binary Packages
-...............
+^^^^^^^^^^^^^^^
 
 Binary packages are available in the `download area`_
 for some Windows and Python version combinations.
@@ -151,8 +152,9 @@ You may find `the entire thread starting here`_ helpful.
 .. _msvcrt.dll variants: http://curl.haxx.se/mail/curlpython-2014-05/0010.html
 .. _the entire thread starting here: http://curl.haxx.se/mail/curlpython-2014-05/0000.html
 
+
 Installing From Source
-......................
+^^^^^^^^^^^^^^^^^^^^^^
 
 First, you will need to obtain dependencies. These can be precompiled binaries
 or source packages that you are going to compile yourself.
@@ -178,7 +180,10 @@ Additional Windows setup.py options:
   import library. The default is ``libcurl.lib`` which is appropriate for
   static linking and is sometimes the correct choice for dynamic linking as
   well. The other possibility for dynamic linking is ``libcurl_imp.lib``.
-- ``--avoid-stdio``: on windows, a process and each library it is using
+- ``--with-openssl``: use OpenSSL crypto locks when libcurl was built against
+  OpenSSL.
+- ``--with-ssl``: legacy alias for ``--with-openssl``.
+- ``--avoid-stdio``: on Windows, a process and each library it is using
   may be linked to its own version of the C runtime (msvcrt).
   FILE pointers from one C runtime may not be passed to another C runtime.
   This option prevents direct passing of FILE pointers from Python to libcurl,
@@ -203,7 +208,7 @@ You may find the following mailing list posts helpful:
 
 
 winbuild.py
-...........
+^^^^^^^^^^^
 
 This script is used to build official PycURL Windows packages. You can
 use it to build a full complement of packages with your own options or modify
@@ -252,3 +257,18 @@ To generate documentation, run::
 Generating documentation requires `Sphinx`_ to be installed.
 
 .. _Sphinx: http://sphinx-doc.org/
+
+
+A Note Regarding SSL Backends
+-----------------------------
+
+libcurl's functionality varies depending on which SSL backend it is compiled
+against. For example, users have `reported`_ `problems`_ with GnuTLS backend.
+As of this writing, generally speaking, OpenSSL backend has the most
+functionality as well as the best compatibility with other software.
+
+If you experience SSL issues, especially if you are not using OpenSSL
+backend, you can try rebuilding libcurl and PycURL against another SSL backend.
+
+.. _reported: https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=515200
+.. _problems: https://bugs.launchpad.net/ubuntu/+source/pycurl/+bug/1111673

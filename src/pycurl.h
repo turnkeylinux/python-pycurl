@@ -14,6 +14,7 @@
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
+#include <sys/un.h>
 #endif
 
 #if defined(WIN32)
@@ -88,11 +89,11 @@ pycurl_inet_ntop (int family, void *addr, char *string, size_t string_size);
 #define HAVE_CURL_7_19_4_OPTS
 #endif
 
-#if LIBCURL_VERSION_NUM >= 0x071304 /* check for 7.19.5 or greater */
+#if LIBCURL_VERSION_NUM >= 0x071305 /* check for 7.19.5 or greater */
 #define HAVE_CURL_7_19_5_OPTS
 #endif
 
-#if LIBCURL_VERSION_NUM >= 0x071304 /* check for 7.19.6 or greater */
+#if LIBCURL_VERSION_NUM >= 0x071306 /* check for 7.19.6 or greater */
 #define HAVE_CURL_7_19_6_OPTS
 #endif
 
@@ -326,6 +327,7 @@ typedef struct CurlObject {
     struct curl_slist *quote;
     struct curl_slist *postquote;
     struct curl_slist *prequote;
+    struct curl_slist *telnetoptions;
 #ifdef HAVE_CURLOPT_RESOLVE
     struct curl_slist *resolve;
 #endif
@@ -340,7 +342,12 @@ typedef struct CurlObject {
     PyObject *debug_cb;
     PyObject *ioctl_cb;
     PyObject *opensocket_cb;
+#if LIBCURL_VERSION_NUM >= 0x071507 /* check for 7.21.7 or greater */
+    PyObject *closesocket_cb;
+#endif
     PyObject *seek_cb;
+    PyObject *sockopt_cb;
+    PyObject *ssh_key_cb;
     /* file objects */
     PyObject *readdata_fp;
     PyObject *writedata_fp;
@@ -447,6 +454,8 @@ extern PyObject *ErrorObject;
 extern PyTypeObject *p_Curl_Type;
 extern PyTypeObject *p_CurlMulti_Type;
 extern PyTypeObject *p_CurlShare_Type;
+extern PyObject *khkey_type;
+extern PyObject *curl_sockaddr_type;
 
 extern PyObject *curlobject_constants;
 extern PyObject *curlmultiobject_constants;

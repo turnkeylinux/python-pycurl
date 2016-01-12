@@ -1,4 +1,4 @@
-From dcaaf657bc3f86c181948fba7260f2bf7183b23f Mon Sep 17 00:00:00 2001
+From fdd8cd2d8b00f4fd95d58dfc16372aa6309acf35 Mon Sep 17 00:00:00 2001
 From: Sandro Tosi <morph@debian.org>
 Date: Tue, 30 Sep 2014 17:38:05 -0400
 Subject: Adjust setup.py file for Debian architecture
@@ -9,7 +9,7 @@ Patch-Name: 10_setup.py.patch
  1 file changed, 1 insertion(+), 1 deletion(-)
 
 diff --git a/setup.py b/setup.py
-index e16e6d6..dfd123f 100644
+index 0f14571..01233eb 100644
 --- a/setup.py
 +++ b/setup.py
 @@ -60,7 +60,7 @@ class ExtensionConfiguration(object):

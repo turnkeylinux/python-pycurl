@@ -21,6 +21,10 @@ PYCURL_INTERNAL PyObject *ErrorObject = NULL;
 PYCURL_INTERNAL PyTypeObject *p_Curl_Type = NULL;
 PYCURL_INTERNAL PyTypeObject *p_CurlMulti_Type = NULL;
 PYCURL_INTERNAL PyTypeObject *p_CurlShare_Type = NULL;
+#ifdef HAVE_CURL_7_19_6_OPTS
+PYCURL_INTERNAL PyObject *khkey_type = NULL;
+#endif
+PYCURL_INTERNAL PyObject *curl_sockaddr_type = NULL;
 
 PYCURL_INTERNAL PyObject *curlobject_constants = NULL;
 PYCURL_INTERNAL PyObject *curlmultiobject_constants = NULL;
@@ -163,7 +167,7 @@ error:
 
 /* Helper functions for inserting constants into the module namespace */
 
-static void
+static int
 insobj2(PyObject *dict1, PyObject *dict2, char *name, PyObject *value)
 {
     /* Insert an object into one or two dicts. Eats a reference to value.
@@ -194,46 +198,73 @@ insobj2(PyObject *dict1, PyObject *dict2, char *name, PyObject *value)
     }
     Py_DECREF(key);
     Py_DECREF(value);
-    return;
+    return 0;
+
 error:
-    Py_FatalError("pycurl: insobj2() failed");
-    assert(0);
+    Py_XDECREF(key);
+    return -1;
 }
 
-static void
+#define insobj2_modinit(dict1, dict2, name, value) \
+    if (insobj2(dict1, dict2, name, value) < 0) \
+        goto error
+
+
+static int
 insstr(PyObject *d, char *name, char *value)
 {
-    PyObject *v = PyText_FromString(value);
-    insobj2(d, NULL, name, v);
+    PyObject *v;
+    int rv;
+
+    v = PyText_FromString(value);
+    if (v == NULL)
+        return -1;
+
+    rv = insobj2(d, NULL, name, v);
+    if (rv < 0) {
+        Py_DECREF(v);
+    }
+    return rv;
 }
 
-static void
-insint(PyObject *d, char *name, long value)
+#define insstr_modinit(d, name, value) \
+    do { \
+        if (insstr(d, name, value) < 0) \
+            goto error; \
+    } while(0)
+
+static int
+insint_worker(PyObject *d, PyObject *extra, char *name, long value)
 {
     PyObject *v = PyInt_FromLong(value);
-    insobj2(d, NULL, name, v);
+    if (v == NULL)
+        return -1;
+    return insobj2(d, extra, name, v);
 }
 
-static void
-insint_s(PyObject *d, char *name, long value)
-{
-    PyObject *v = PyInt_FromLong(value);
-    insobj2(d, curlshareobject_constants, name, v);
-}
+#define insint(d, name, value) \
+    do { \
+        if (insint_worker(d, NULL, name, value) < 0) \
+            goto error; \
+    } while(0)
 
-static void
-insint_c(PyObject *d, char *name, long value)
-{
-    PyObject *v = PyInt_FromLong(value);
-    insobj2(d, curlobject_constants, name, v);
-}
+#define insint_c(d, name, value) \
+    do { \
+        if (insint_worker(d, curlobject_constants, name, value) < 0) \
+            goto error; \
+    } while(0)
 
-static void
-insint_m(PyObject *d, char *name, long value)
-{
-    PyObject *v = PyInt_FromLong(value);
-    insobj2(d, curlmultiobject_constants, name, v);
-}
+#define insint_m(d, name, value) \
+    do { \
+        if (insint_worker(d, curlmultiobject_constants, name, value) < 0) \
+            goto error; \
+    } while(0)
+
+#define insint_s(d, name, value) \
+    do { \
+        if (insint_worker(d, curlshareobject_constants, name, value) < 0) \
+            goto error; \
+    } while(0)
 
 
 #if PY_MAJOR_VERSION >= 3
@@ -281,19 +312,22 @@ initpycurl(void)
     const curl_version_info_data *vi;
     const char *libcurl_version, *runtime_ssl_lib;
     size_t libcurl_version_len, pycurl_version_len;
+    PyObject *collections_module = NULL;
+    PyObject *named_tuple = NULL;
+    PyObject *arglist = NULL;
 
     /* Check the version, as this has caused nasty problems in
      * some cases. */
     vi = curl_version_info(CURLVERSION_NOW);
     if (vi == NULL) {
         PyErr_SetString(PyExc_ImportError, "pycurl: curl_version_info() failed");
-        PYCURL_MODINIT_RETURN_NULL;
+        goto error;
     }
     if (vi->version_num < LIBCURL_VERSION_NUM) {
         PyErr_Format(PyExc_ImportError, "pycurl: libcurl link-time version (%s) is older than compile-time version (%s)", vi->version, LIBCURL_VERSION);
-        PYCURL_MODINIT_RETURN_NULL;
+        goto error;
     }
-    
+
     /* Our compiled crypto locks should correspond to runtime ssl library. */
     if (vi->ssl_version == NULL) {
         runtime_ssl_lib = "none/other";
@@ -308,7 +342,7 @@ initpycurl(void)
     }
     if (strcmp(runtime_ssl_lib, COMPILE_SSL_LIB)) {
         PyErr_Format(PyExc_ImportError, "pycurl: libcurl link-time ssl backend (%s) is different from compile-time ssl backend (%s)", runtime_ssl_lib, COMPILE_SSL_LIB);
-        PYCURL_MODINIT_RETURN_NULL;
+        goto error;
     }
 
     /* Initialize the type of the new type objects here; doing it here
@@ -322,40 +356,47 @@ initpycurl(void)
 
     /* Create the module and add the functions */
     if (PyType_Ready(&Curl_Type) < 0)
-        PYCURL_MODINIT_RETURN_NULL;
+        goto error;
 
     if (PyType_Ready(&CurlMulti_Type) < 0)
-        PYCURL_MODINIT_RETURN_NULL;
+        goto error;
 
     if (PyType_Ready(&CurlShare_Type) < 0)
-        PYCURL_MODINIT_RETURN_NULL;
+        goto error;
 
 #if PY_MAJOR_VERSION >= 3
     m = PyModule_Create(&curlmodule);
     if (m == NULL)
-        return NULL;
+        goto error;
 #else
-
+    /* returns a borrowed reference, XDECREFing it crashes the interpreter */
     m = Py_InitModule3("pycurl", curl_methods, pycurl_module_doc);
-    assert(m != NULL && PyModule_Check(m));
+    if (m == NULL || !PyModule_Check(m))
+        goto error;
 #endif
 
     /* Add error object to the module */
     d = PyModule_GetDict(m);
     assert(d != NULL);
     ErrorObject = PyErr_NewException("pycurl.error", NULL, NULL);
-    assert(ErrorObject != NULL);
-    PyDict_SetItemString(d, "error", ErrorObject);
+    if (ErrorObject == NULL)
+        goto error;
+    if (PyDict_SetItemString(d, "error", ErrorObject) < 0) {
+        goto error;
+    }
 
     curlobject_constants = PyDict_New();
-    assert(curlobject_constants != NULL);
+    if (curlobject_constants == NULL)
+        goto error;
 
     curlmultiobject_constants = PyDict_New();
-    assert(curlmultiobject_constants != NULL);
+    if (curlmultiobject_constants == NULL)
+        goto error;
 
     curlshareobject_constants = PyDict_New();
-    assert(curlshareobject_constants != NULL);
-    
+    if (curlshareobject_constants == NULL)
+        goto error;
+
     /* Add version strings to the module */
     libcurl_version = curl_version();
     libcurl_version_len = strlen(libcurl_version);
@@ -365,7 +406,8 @@ initpycurl(void)
      * terminating null. */
     pycurl_version_len = PYCURL_VERSION_PREFIX_SIZE + libcurl_version_len + 1;
     g_pycurl_useragent = PyMem_Malloc(pycurl_version_len);
-    assert(g_pycurl_useragent != NULL);
+    if (g_pycurl_useragent == NULL)
+        goto error;
     memcpy(g_pycurl_useragent, PYCURL_VERSION_PREFIX, PYCURL_VERSION_PREFIX_SIZE);
     g_pycurl_useragent[PYCURL_VERSION_PREFIX_SIZE-1] = ' ';
     memcpy(g_pycurl_useragent + PYCURL_VERSION_PREFIX_SIZE,
@@ -373,16 +415,16 @@ initpycurl(void)
     g_pycurl_useragent[pycurl_version_len - 1] = 0;
 #undef PYCURL_VERSION_PREFIX_SIZE
 
-    insobj2(d, NULL, "version", PyText_FromString(g_pycurl_useragent));
-    insstr(d, "COMPILE_DATE", __DATE__ " " __TIME__);
+    insstr_modinit(d, "version", g_pycurl_useragent);
+    insstr_modinit(d, "COMPILE_DATE", __DATE__ " " __TIME__);
     insint(d, "COMPILE_PY_VERSION_HEX", PY_VERSION_HEX);
     insint(d, "COMPILE_LIBCURL_VERSION_NUM", LIBCURL_VERSION_NUM);
 
     /* Types */
-    insobj2(d, NULL, "Curl", (PyObject *) p_Curl_Type);
-    insobj2(d, NULL, "CurlMulti", (PyObject *) p_CurlMulti_Type);
-    insobj2(d, NULL, "CurlShare", (PyObject *) p_CurlShare_Type);
-    
+    insobj2_modinit(d, NULL, "Curl", (PyObject *) p_Curl_Type);
+    insobj2_modinit(d, NULL, "CurlMulti", (PyObject *) p_CurlMulti_Type);
+    insobj2_modinit(d, NULL, "CurlShare", (PyObject *) p_CurlShare_Type);
+
     /**
      ** the order of these constants mostly follows <curl/curl.h>
      **/
@@ -415,6 +457,25 @@ initpycurl(void)
 
     /* CURLcode: error codes */
     insint_c(d, "E_OK", CURLE_OK);
+    insint_c(d, "E_AGAIN", CURLE_AGAIN);
+    insint_c(d, "E_ALREADY_COMPLETE", CURLE_ALREADY_COMPLETE);
+    insint_c(d, "E_BAD_CALLING_ORDER", CURLE_BAD_CALLING_ORDER);
+    insint_c(d, "E_BAD_PASSWORD_ENTERED", CURLE_BAD_PASSWORD_ENTERED);
+    insint_c(d, "E_FTP_BAD_DOWNLOAD_RESUME", CURLE_FTP_BAD_DOWNLOAD_RESUME);
+    insint_c(d, "E_FTP_COULDNT_SET_TYPE", CURLE_FTP_COULDNT_SET_TYPE);
+    insint_c(d, "E_FTP_PARTIAL_FILE", CURLE_FTP_PARTIAL_FILE);
+    insint_c(d, "E_FTP_USER_PASSWORD_INCORRECT", CURLE_FTP_USER_PASSWORD_INCORRECT);
+    insint_c(d, "E_HTTP_NOT_FOUND", CURLE_HTTP_NOT_FOUND);
+    insint_c(d, "E_HTTP_PORT_FAILED", CURLE_HTTP_PORT_FAILED);
+    insint_c(d, "E_MALFORMAT_USER", CURLE_MALFORMAT_USER);
+    insint_c(d, "E_QUOTE_ERROR", CURLE_QUOTE_ERROR);
+    insint_c(d, "E_RANGE_ERROR", CURLE_RANGE_ERROR);
+    insint_c(d, "E_REMOTE_ACCESS_DENIED", CURLE_REMOTE_ACCESS_DENIED);
+    insint_c(d, "E_REMOTE_DISK_FULL", CURLE_REMOTE_DISK_FULL);
+    insint_c(d, "E_REMOTE_FILE_EXISTS", CURLE_REMOTE_FILE_EXISTS);
+    insint_c(d, "E_UPLOAD_FAILED", CURLE_UPLOAD_FAILED);
+    insint_c(d, "E_URL_MALFORMAT_USER", CURLE_URL_MALFORMAT_USER);
+    insint_c(d, "E_USE_SSL_FAILED", CURLE_USE_SSL_FAILED);
     insint_c(d, "E_UNSUPPORTED_PROTOCOL", CURLE_UNSUPPORTED_PROTOCOL);
     insint_c(d, "E_FAILED_INIT", CURLE_FAILED_INIT);
     insint_c(d, "E_URL_MALFORMAT", CURLE_URL_MALFORMAT);
@@ -497,6 +558,7 @@ initpycurl(void)
     insint_c(d, "E_FTP_SSL_FAILED", CURLE_FTP_SSL_FAILED);
     insint_c(d, "E_SEND_FAIL_REWIND", CURLE_SEND_FAIL_REWIND);
     insint_c(d, "E_LOGIN_DENIED", CURLE_LOGIN_DENIED);
+    insint_c(d, "E_PEER_FAILED_VERIFICATION", CURLE_PEER_FAILED_VERIFICATION);
     insint_c(d, "E_TFTP_NOTFOUND", CURLE_TFTP_NOTFOUND);
     insint_c(d, "E_TFTP_PERM", CURLE_TFTP_PERM);
     insint_c(d, "E_TFTP_DISKFULL", CURLE_TFTP_DISKFULL);
@@ -574,35 +636,40 @@ initpycurl(void)
     insint_c(d, "FTPMETHOD_SINGLECWD", CURLFTPMETHOD_SINGLECWD);
 
     /* CURLoption: symbolic constants for setopt() */
-    /* FIXME: reorder these to match <curl/curl.h> */
+    insint_c(d, "APPEND", CURLOPT_APPEND);
+    insint_c(d, "COOKIESESSION", CURLOPT_COOKIESESSION);
+    insint_c(d, "DIRLISTONLY", CURLOPT_DIRLISTONLY);
+    /* ERRORBUFFER is not supported */
     insint_c(d, "FILE", CURLOPT_WRITEDATA);
-    insint_c(d, "URL", CURLOPT_URL);
+    insint_c(d, "FTPPORT", CURLOPT_FTPPORT);
+    insint_c(d, "INFILE", CURLOPT_READDATA);
+    insint_c(d, "INFILESIZE", CURLOPT_INFILESIZE_LARGE);    /* _LARGE ! */
+    insint_c(d, "KEYPASSWD", CURLOPT_KEYPASSWD);
+    insint_c(d, "LOW_SPEED_LIMIT", CURLOPT_LOW_SPEED_LIMIT);
+    insint_c(d, "LOW_SPEED_TIME", CURLOPT_LOW_SPEED_TIME);
     insint_c(d, "PORT", CURLOPT_PORT);
+    insint_c(d, "POSTFIELDS", CURLOPT_POSTFIELDS);
     insint_c(d, "PROXY", CURLOPT_PROXY);
+#ifdef HAVE_CURLOPT_PROXYUSERNAME
+    insint_c(d, "PROXYPASSWORD", CURLOPT_PROXYPASSWORD);
+    insint_c(d, "PROXYUSERNAME", CURLOPT_PROXYUSERNAME);
+#endif
+    insint_c(d, "PROXYUSERPWD", CURLOPT_PROXYUSERPWD);
+    insint_c(d, "RANGE", CURLOPT_RANGE);
+    insint_c(d, "READFUNCTION", CURLOPT_READFUNCTION);
+    insint_c(d, "REFERER", CURLOPT_REFERER);
+    insint_c(d, "RESUME_FROM", CURLOPT_RESUME_FROM_LARGE);  /* _LARGE ! */
+    insint_c(d, "TELNETOPTIONS", CURLOPT_TELNETOPTIONS);
+    insint_c(d, "TIMEOUT", CURLOPT_TIMEOUT);
+    insint_c(d, "URL", CURLOPT_URL);
+    insint_c(d, "USE_SSL", CURLOPT_USE_SSL);
+    insint_c(d, "USERAGENT", CURLOPT_USERAGENT);
     insint_c(d, "USERPWD", CURLOPT_USERPWD);
+    insint_c(d, "WRITEFUNCTION", CURLOPT_WRITEFUNCTION);
 #ifdef HAVE_CURLOPT_USERNAME
     insint_c(d, "USERNAME", CURLOPT_USERNAME);
     insint_c(d, "PASSWORD", CURLOPT_PASSWORD);
 #endif
-    insint_c(d, "PROXYUSERPWD", CURLOPT_PROXYUSERPWD);
-#ifdef HAVE_CURLOPT_PROXYUSERNAME
-    insint_c(d, "PROXYUSERNAME", CURLOPT_PROXYUSERNAME);
-    insint_c(d, "PROXYPASSWORD", CURLOPT_PROXYPASSWORD);
-#endif
-    insint_c(d, "RANGE", CURLOPT_RANGE);
-    insint_c(d, "INFILE", CURLOPT_READDATA);
-    /* ERRORBUFFER is not supported */
-    insint_c(d, "WRITEFUNCTION", CURLOPT_WRITEFUNCTION);
-    insint_c(d, "READFUNCTION", CURLOPT_READFUNCTION);
-    insint_c(d, "TIMEOUT", CURLOPT_TIMEOUT);
-    insint_c(d, "INFILESIZE", CURLOPT_INFILESIZE_LARGE);    /* _LARGE ! */
-    insint_c(d, "POSTFIELDS", CURLOPT_POSTFIELDS);
-    insint_c(d, "REFERER", CURLOPT_REFERER);
-    insint_c(d, "FTPPORT", CURLOPT_FTPPORT);
-    insint_c(d, "USERAGENT", CURLOPT_USERAGENT);
-    insint_c(d, "LOW_SPEED_LIMIT", CURLOPT_LOW_SPEED_LIMIT);
-    insint_c(d, "LOW_SPEED_TIME", CURLOPT_LOW_SPEED_TIME);
-    insint_c(d, "RESUME_FROM", CURLOPT_RESUME_FROM_LARGE);  /* _LARGE ! */
     insint_c(d, "WRITEDATA", CURLOPT_WRITEDATA);
     insint_c(d, "READDATA", CURLOPT_READDATA);
     insint_c(d, "PROXYPORT", CURLOPT_PROXYPORT);
@@ -641,6 +708,7 @@ initpycurl(void)
     insint_c(d, "STDERR", CURLOPT_STDERR);
     insint_c(d, "INTERFACE", CURLOPT_INTERFACE);
     insint_c(d, "KRB4LEVEL", CURLOPT_KRB4LEVEL);
+    insint_c(d, "KRBLEVEL", CURLOPT_KRBLEVEL);
     insint_c(d, "PROGRESSFUNCTION", CURLOPT_PROGRESSFUNCTION);
     insint_c(d, "SSL_VERIFYPEER", CURLOPT_SSL_VERIFYPEER);
     insint_c(d, "CAPATH", CURLOPT_CAPATH);
@@ -662,6 +730,7 @@ initpycurl(void)
     insint_c(d, "SSLCERTTYPE", CURLOPT_SSLCERTTYPE);
     insint_c(d, "SSLKEY", CURLOPT_SSLKEY);
     insint_c(d, "SSLKEYTYPE", CURLOPT_SSLKEYTYPE);
+    /* same as CURLOPT_KEYPASSWD */
     insint_c(d, "SSLKEYPASSWD", CURLOPT_SSLKEYPASSWD);
     insint_c(d, "SSLENGINE", CURLOPT_SSLENGINE);
     insint_c(d, "SSLENGINE_DEFAULT", CURLOPT_SSLENGINE_DEFAULT);
@@ -693,6 +762,10 @@ initpycurl(void)
     insint_c(d, "IOCTLFUNCTION", CURLOPT_IOCTLFUNCTION);
     insint_c(d, "IOCTLDATA", CURLOPT_IOCTLDATA);
     insint_c(d, "OPENSOCKETFUNCTION", CURLOPT_OPENSOCKETFUNCTION);
+#if LIBCURL_VERSION_NUM >= 0x071507 /* check for 7.21.7 or greater */
+    insint_c(d, "CLOSESOCKETFUNCTION", CURLOPT_CLOSESOCKETFUNCTION);
+#endif
+    insint_c(d, "SOCKOPTFUNCTION", CURLOPT_SOCKOPTFUNCTION);
     insint_c(d, "FTP_ACCOUNT", CURLOPT_FTP_ACCOUNT);
     insint_c(d, "IGNORE_CONTENT_LENGTH", CURLOPT_IGNORE_CONTENT_LENGTH);
     insint_c(d, "COOKIELIST", CURLOPT_COOKIELIST);
@@ -713,6 +786,7 @@ initpycurl(void)
     insint_c(d, "SSH_PRIVATE_KEYFILE", CURLOPT_SSH_PRIVATE_KEYFILE);
 #ifdef HAVE_CURL_7_19_6_OPTS
     insint_c(d, "SSH_KNOWNHOSTS", CURLOPT_SSH_KNOWNHOSTS);
+    insint_c(d, "SSH_KEYFUNCTION", CURLOPT_SSH_KEYFUNCTION);
 #endif
     insint_c(d, "FTP_SSL_CCC", CURLOPT_FTP_SSL_CCC);
     insint_c(d, "TIMEOUT_MS", CURLOPT_TIMEOUT_MS);
@@ -794,6 +868,29 @@ initpycurl(void)
 #ifdef HAVE_CURL_7_25_0_OPTS
     insint_c(d, "MAIL_AUTH", CURLOPT_MAIL_AUTH);
 #endif
+#if LIBCURL_VERSION_NUM >= 0x072700 /* check for 7.39.0 or greater */
+    insint_c(d, "PINNEDPUBLICKEY", CURLOPT_PINNEDPUBLICKEY);
+#endif
+#if LIBCURL_VERSION_NUM >= 0x071500 /* check for 7.21.0 or greater */
+    insint_c(d, "WILDCARDMATCH", CURLOPT_WILDCARDMATCH);
+#endif
+#if LIBCURL_VERSION_NUM >= 0x072800 /* check for 7.40.0 or greater */
+    insint_c(d, "UNIX_SOCKET_PATH", CURLOPT_UNIX_SOCKET_PATH);
+#endif
+#if LIBCURL_VERSION_NUM >= 0x072400 /* check for 7.36.0 or greater */
+    insint_c(d, "SSL_ENABLE_ALPN", CURLOPT_SSL_ENABLE_ALPN);
+    insint_c(d, "SSL_ENABLE_NPN", CURLOPT_SSL_ENABLE_NPN);
+#endif
+#if LIBCURL_VERSION_NUM >= 0x072a00 /* check for 7.42.0 or greater */
+    insint_c(d, "SSL_FALSESTART", CURLOPT_SSL_FALSESTART);
+#endif
+#if LIBCURL_VERSION_NUM >= 0x071900 /* check for 7.25.0 or greater */
+    insint_c(d, "SSL_OPTIONS", CURLOPT_SSL_OPTIONS);
+    insint_c(d, "SSLOPT_ALLOW_BEAST", CURLSSLOPT_ALLOW_BEAST);
+# if LIBCURL_VERSION_NUM >= 0x072c00 /* check for 7.44.0 or greater */
+    insint_c(d, "SSLOPT_NO_REVOKE", CURLSSLOPT_NO_REVOKE);
+# endif
+#endif
 
     insint_m(d, "M_TIMERFUNCTION", CURLMOPT_TIMERFUNCTION);
     insint_m(d, "M_SOCKETFUNCTION", CURLMOPT_SOCKETFUNCTION);
@@ -848,6 +945,35 @@ initpycurl(void)
     insint_c(d, "SSH_AUTH_HOST", CURLSSH_AUTH_HOST);
     insint_c(d, "SSH_AUTH_KEYBOARD", CURLSSH_AUTH_KEYBOARD);
     insint_c(d, "SSH_AUTH_DEFAULT", CURLSSH_AUTH_DEFAULT);
+
+#ifdef HAVE_CURL_7_19_6_OPTS
+    /* curl_khtype constants */
+    insint_c(d, "KHTYPE_UNKNOWN", CURLKHTYPE_UNKNOWN);
+    insint_c(d, "KHTYPE_RSA1", CURLKHTYPE_RSA1);
+    insint_c(d, "KHTYPE_RSA", CURLKHTYPE_RSA);
+    insint_c(d, "KHTYPE_DSS", CURLKHTYPE_DSS);
+
+    /* curl_khmatch constants, passed to sshkeycallback */
+    insint_c(d, "KHMATCH_OK", CURLKHMATCH_OK);
+    insint_c(d, "KHMATCH_MISMATCH", CURLKHMATCH_MISMATCH);
+    insint_c(d, "KHMATCH_MISSING", CURLKHMATCH_MISSING);
+
+    /* return values for CURLOPT_SSH_KEYFUNCTION */
+    insint_c(d, "KHSTAT_FINE_ADD_TO_FILE", CURLKHSTAT_FINE_ADD_TO_FILE);
+    insint_c(d, "KHSTAT_FINE", CURLKHSTAT_FINE);
+    insint_c(d, "KHSTAT_REJECT", CURLKHSTAT_REJECT);
+    insint_c(d, "KHSTAT_DEFER", CURLKHSTAT_DEFER);
+#endif
+
+#if LIBCURL_VERSION_NUM >= 0x071c00 /* check for 7.28.0 or greater */
+    insint_c(d, "SOCKTYPE_ACCEPT", CURLSOCKTYPE_ACCEPT);
+#endif
+    insint_c(d, "SOCKTYPE_IPCXN", CURLSOCKTYPE_IPCXN);
+
+    insint_c(d, "USESSL_NONE", CURLUSESSL_NONE);
+    insint_c(d, "USESSL_TRY", CURLUSESSL_TRY);
+    insint_c(d, "USESSL_CONTROL", CURLUSESSL_CONTROL);
+    insint_c(d, "USESSL_ALL", CURLUSESSL_ALL);
 
     /* CURLINFO: symbolic constants for getinfo(x) */
     insint_c(d, "EFFECTIVE_URL", CURLINFO_EFFECTIVE_URL);
@@ -963,20 +1089,42 @@ initpycurl(void)
 #endif
 
     /* version features - bitmasks for curl_version_info_data.features */
-#if 0
-    /* XXX - do we need these ?? */
-    /* XXX - should we really rename these ?? */
-    insint(d, "VERSION_FEATURE_IPV6", CURL_VERSION_IPV6);
-    insint(d, "VERSION_FEATURE_KERBEROS4", CURL_VERSION_KERBEROS4);
-    insint(d, "VERSION_FEATURE_SSL", CURL_VERSION_SSL);
-    insint(d, "VERSION_FEATURE_LIBZ", CURL_VERSION_LIBZ);
-    insint(d, "VERSION_FEATURE_NTLM", CURL_VERSION_NTLM);
-    insint(d, "VERSION_FEATURE_GSSNEGOTIATE", CURL_VERSION_GSSNEGOTIATE);
-    insint(d, "VERSION_FEATURE_DEBUG", CURL_VERSION_DEBUG);
-    insint(d, "VERSION_FEATURE_ASYNCHDNS", CURL_VERSION_ASYNCHDNS);
-    insint(d, "VERSION_FEATURE_SPNEGO", CURL_VERSION_SPNEGO);
-    insint(d, "VERSION_FEATURE_LARGEFILE", CURL_VERSION_LARGEFILE);
-    insint(d, "VERSION_FEATURE_IDN", CURL_VERSION_IDN);
+    insint(d, "VERSION_IPV6", CURL_VERSION_IPV6);
+    insint(d, "VERSION_KERBEROS4", CURL_VERSION_KERBEROS4);
+#if LIBCURL_VERSION_NUM >= 0x072800 /* check for 7.40.0 or greater */
+    insint(d, "VERSION_KERBEROS5", CURL_VERSION_KERBEROS5);
+#endif
+    insint(d, "VERSION_SSL", CURL_VERSION_SSL);
+    insint(d, "VERSION_LIBZ", CURL_VERSION_LIBZ);
+    insint(d, "VERSION_NTLM", CURL_VERSION_NTLM);
+    insint(d, "VERSION_GSSNEGOTIATE", CURL_VERSION_GSSNEGOTIATE);
+    insint(d, "VERSION_DEBUG", CURL_VERSION_DEBUG);
+#if LIBCURL_VERSION_NUM >= 0x071306 /* check for 7.19.6 or greater */
+    insint(d, "VERSION_CURLDEBUG", CURL_VERSION_CURLDEBUG);
+#endif
+    insint(d, "VERSION_ASYNCHDNS", CURL_VERSION_ASYNCHDNS);
+    insint(d, "VERSION_SPNEGO", CURL_VERSION_SPNEGO);
+    insint(d, "VERSION_LARGEFILE", CURL_VERSION_LARGEFILE);
+    insint(d, "VERSION_IDN", CURL_VERSION_IDN);
+    insint(d, "VERSION_SSPI", CURL_VERSION_SSPI);
+#if LIBCURL_VERSION_NUM >= 0x072600 /* check for 7.38.0 or greater */
+    insint(d, "VERSION_GSSAPI", CURL_VERSION_GSSAPI);
+#endif
+    insint(d, "VERSION_CONV", CURL_VERSION_CONV);
+#if LIBCURL_VERSION_NUM >= 0x071504 /* check for 7.21.4 or greater */
+    insint(d, "VERSION_TLSAUTH_SRP", CURL_VERSION_TLSAUTH_SRP);
+#endif
+#if LIBCURL_VERSION_NUM >= 0x071600 /* check for 7.22.0 or greater */
+    insint(d, "VERSION_NTLM_WB", CURL_VERSION_NTLM_WB);
+#endif
+#if LIBCURL_VERSION_NUM >= 0x072100 /* check for 7.33.0 or greater */
+    insint(d, "VERSION_HTTP2", CURL_VERSION_HTTP2);
+#endif
+#if LIBCURL_VERSION_NUM >= 0x072800 /* check for 7.40.0 or greater */
+    insint(d, "VERSION_UNIX_SOCKETS", CURL_VERSION_UNIX_SOCKETS);
+#endif
+#if LIBCURL_VERSION_NUM >= 0x072F00 /* check for 7.47.0 or greater */
+    insint(d, "VERSION_PSL", CURL_VERSION_PSL);
 #endif
 
     /**
@@ -984,12 +1132,18 @@ initpycurl(void)
      **/
 
     /* CURLMcode: multi error codes */
+    /* old symbol */
     insint_m(d, "E_CALL_MULTI_PERFORM", CURLM_CALL_MULTI_PERFORM);
+    /* new symbol for consistency */
+    insint_m(d, "E_MULTI_CALL_MULTI_PERFORM", CURLM_CALL_MULTI_PERFORM);
     insint_m(d, "E_MULTI_OK", CURLM_OK);
     insint_m(d, "E_MULTI_BAD_HANDLE", CURLM_BAD_HANDLE);
     insint_m(d, "E_MULTI_BAD_EASY_HANDLE", CURLM_BAD_EASY_HANDLE);
+    insint_m(d, "E_MULTI_BAD_SOCKET", CURLM_BAD_SOCKET);
+    insint_m(d, "E_MULTI_CALL_MULTI_SOCKET", CURLM_CALL_MULTI_SOCKET);
     insint_m(d, "E_MULTI_OUT_OF_MEMORY", CURLM_OUT_OF_MEMORY);
     insint_m(d, "E_MULTI_INTERNAL_ERROR", CURLM_INTERNAL_ERROR);
+    insint_m(d, "E_MULTI_UNKNOWN_OPTION", CURLM_UNKNOWN_OPTION);
 
     /* curl shared constants */
     insint_s(d, "SH_SHARE", CURLSHOPT_SHARE);
@@ -1004,6 +1158,38 @@ initpycurl(void)
     pycurl_ssl_init();
 #endif
 
+    collections_module = PyImport_ImportModule("collections");
+    if (collections_module == NULL) {
+        goto error;
+    }
+    named_tuple = PyObject_GetAttrString(collections_module, "namedtuple");
+    if (named_tuple == NULL) {
+        goto error;
+    }
+#ifdef HAVE_CURL_7_19_6_OPTS
+    arglist = Py_BuildValue("ss", "KhKey", "key keytype");
+    if (arglist == NULL) {
+        goto error;
+    }
+    khkey_type = PyObject_Call(named_tuple, arglist, NULL);
+    if (khkey_type == NULL) {
+        goto error;
+    }
+    Py_DECREF(arglist);
+    PyDict_SetItemString(d, "KhKey", khkey_type);
+#endif
+
+    arglist = Py_BuildValue("ss", "CurlSockAddr", "family socktype protocol addr");
+    if (arglist == NULL) {
+        goto error;
+    }
+    curl_sockaddr_type = PyObject_Call(named_tuple, arglist, NULL);
+    if (curl_sockaddr_type == NULL) {
+        goto error;
+    }
+    Py_DECREF(arglist);
+    PyDict_SetItemString(d, "CurlSockAddr", curl_sockaddr_type);
+
 #ifdef WITH_THREAD
     /* Finally initialize global interpreter lock */
     PyEval_InitThreads();
@@ -1011,5 +1197,24 @@ initpycurl(void)
 
 #if PY_MAJOR_VERSION >= 3
     return m;
+#else
+    PYCURL_MODINIT_RETURN_NULL;
 #endif
+
+error:
+    Py_XDECREF(curlobject_constants);
+    Py_XDECREF(curlmultiobject_constants);
+    Py_XDECREF(curlshareobject_constants);
+    Py_XDECREF(ErrorObject);
+    Py_XDECREF(collections_module);
+    Py_XDECREF(named_tuple);
+    Py_XDECREF(arglist);
+#ifdef HAVE_CURL_7_19_6_OPTS
+    Py_XDECREF(khkey_type);
+    Py_XDECREF(curl_sockaddr_type);
+#endif
+    PyMem_Free(g_pycurl_useragent);
+    if (!PyErr_Occurred())
+        PyErr_SetString(PyExc_ImportError, "curl module init failed");
+    PYCURL_MODINIT_RETURN_NULL;
 }

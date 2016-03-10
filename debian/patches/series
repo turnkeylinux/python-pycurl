@@ -1,2 +1,3 @@
 10_setup.py.patch
 20_build_doc_for_debian.patch
+30_debianize_tests.patch

@@ -23,6 +23,8 @@ if py3:
         return s
     text_type = str
     binary_type = bytes
+
+    long_int = int
 else:
     try:
         from cStringIO import StringIO
@@ -47,6 +49,11 @@ else:
     text_type = unicode
     binary_type = str
 
+    if False:
+        # pacify pyflakes
+        long = int
+    long_int = long
+
 def version_less_than_spec(version_tuple, spec_tuple):
     # spec_tuple may have 2 elements, expect version_tuple to have 3 elements
     assert len(version_tuple) >= len(spec_tuple)
@@ -60,7 +67,7 @@ def version_less_than_spec(version_tuple, spec_tuple):
 def pycurl_version_less_than(*spec):
     import pycurl
 
-    version = [int(part) for part in pycurl.version_info()[1].split('.')]
+    version = [int(part) for part in pycurl.version_info()[1].split('-')[0].split('.')]
     return version_less_than_spec(version, spec)
 
 def only_python3(fn):

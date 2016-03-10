@@ -78,7 +78,7 @@ def files():
 
 @app.route('/header')
 def header():
-    return bottle.request.headers[bottle.request.query['h']]
+    return bottle.request.headers.get(bottle.request.query['h'], '')
 
 # This is a hacky endpoint to test non-ascii text being given to libcurl
 # via headers.
@@ -106,14 +106,18 @@ def param_utf8_hack():
         param = param.encode('latin').decode('utf8')
     return param
 
-def pause_writer():
+def pause_writer(interval):
     yield 'part1'
-    _time.sleep(0.5)
+    _time.sleep(interval)
     yield 'part2'
 
 @app.route('/pause')
 def pause():
-    return pause_writer()
+    return pause_writer(0.5)
+
+@app.route('/long_pause')
+def long_pause():
+    return pause_writer(1)
 
 @app.route('/utf8_body')
 def utf8_body():

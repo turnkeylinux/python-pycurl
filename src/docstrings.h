@@ -9,6 +9,7 @@ extern const char curl_pause_doc[];
 extern const char curl_perform_doc[];
 extern const char curl_reset_doc[];
 extern const char curl_setopt_doc[];
+extern const char curl_setopt_string_doc[];
 extern const char curl_unsetopt_doc[];
 extern const char multi_doc[];
 extern const char multi_add_handle_doc[];

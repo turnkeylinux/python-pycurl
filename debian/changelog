@@ -4,6 +4,7 @@ pycurl (7.43.0-1) unstable; urgency=medium
   * d/control:
     - Add python{,3}-flaky to Build-Depends for test suite.
     - Test suite runs at build time but still fails, so continue not to fail.
+    - Bump Standards-Version to 3.9.7 with no other changes necessary.
   * d/tests: Add a live test which downloads a well published resource.
     (Closes: #763770)
 

@@ -1,6 +1,7 @@
 pycurl (7.43.0-1) UNRELEASED; urgency=medium
 
   * New upstream release.
+  * d/control: Add python{,3}-flaky to Build-Depends for test suite.
   * d/tests: Add a live test which downloads a well published resource.
 
  -- Barry Warsaw <barry@debian.org>  Thu, 10 Mar 2016 09:48:57 -0500

@@ -6,3 +6,5 @@ Test-Command: python -c "import curl; print curl.__file__"
 Test-Command: python3 -c "import curl; print(curl.__file__)"
 
 Tests: livetest.sh
+Depends: @, ca-certificates
+Restrictions: allow-stderr

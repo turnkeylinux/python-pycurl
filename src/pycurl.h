@@ -35,6 +35,14 @@
 #undef NDEBUG
 #include <assert.h>
 
+#define MAKE_LIBCURL_VERSION(major, minor, patch) \
+    ((major) * 0x10000 + (minor) * 0x100 + (patch))
+
+/* spot check */
+#if MAKE_LIBCURL_VERSION(7, 21, 16) != 0x071510
+# error MAKE_LIBCURL_VERSION is not working correctly
+#endif
+
 #if defined(PYCURL_SINGLE_FILE)
 # define PYCURL_INTERNAL static
 #else
@@ -193,7 +201,7 @@ typedef int Py_ssize_t;
 #endif /* HAVE_CURL_SSL */
 
 #if defined(PYCURL_NEED_SSL_TSL)
-PYCURL_INTERNAL void pycurl_ssl_init(void);
+PYCURL_INTERNAL int pycurl_ssl_init(void);
 PYCURL_INTERNAL void pycurl_ssl_cleanup(void);
 #endif
 
@@ -273,6 +281,20 @@ PyText_Check(PyObject *o);
     return NULL; \
 } while (0)
 
+#define CURLERROR_SET_RETVAL() do {\
+    PyObject *v; \
+    self->error[sizeof(self->error) - 1] = 0; \
+    v = Py_BuildValue("(is)", (int) (res), self->error); \
+    if (v != NULL) { PyErr_SetObject(ErrorObject, v); Py_DECREF(v); } \
+} while (0)
+
+#define CURLERROR_RETVAL_MULTI_DONE() do {\
+    PyObject *v; \
+    v = Py_BuildValue("(i)", (int) (res)); \
+    if (v != NULL) { PyErr_SetObject(ErrorObject, v); Py_DECREF(v); } \
+    goto done; \
+} while (0)
+
 /* Raise exception based on return value `res' and custom message */
 #define CURLERROR_MSG(msg) do {\
     PyObject *v; const char *m = (msg); \
@@ -323,6 +345,9 @@ typedef struct CurlObject {
     /* List of INC'ed references associated with httppost. */
     PyObject *httppost_ref_list;
     struct curl_slist *httpheader;
+#if LIBCURL_VERSION_NUM >= MAKE_LIBCURL_VERSION(7, 37, 0)
+    struct curl_slist *proxyheader;
+#endif
     struct curl_slist *http200aliases;
     struct curl_slist *quote;
     struct curl_slist *postquote;
@@ -339,6 +364,9 @@ typedef struct CurlObject {
     PyObject *h_cb;
     PyObject *r_cb;
     PyObject *pro_cb;
+#if LIBCURL_VERSION_NUM >= MAKE_LIBCURL_VERSION(7, 32, 0)
+    PyObject *xferinfo_cb;
+#endif
     PyObject *debug_cb;
     PyObject *ioctl_cb;
     PyObject *opensocket_cb;
@@ -413,13 +441,6 @@ PYCURL_INTERNAL void
 share_unlock_callback(CURL *handle, curl_lock_data data, void *userptr);
 
 #endif /* WITH_THREAD */
-
-#if defined(PYCURL_NEED_SSL_TSL)
-PYCURL_INTERNAL void
-pycurl_ssl_init(void);
-PYCURL_INTERNAL void
-pycurl_ssl_cleanup(void);
-#endif
 
 #if PY_MAJOR_VERSION >= 3
 PYCURL_INTERNAL PyObject *

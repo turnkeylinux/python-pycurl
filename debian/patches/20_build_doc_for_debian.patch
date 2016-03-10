@@ -1,4 +1,4 @@
-From 16e907fbfc8b8905cadd96ef54f7379fe0718c52 Mon Sep 17 00:00:00 2001
+From bd7908f6018f67aa3a8d974ce0e6ebca900ec2c1 Mon Sep 17 00:00:00 2001
 From: Sandro Tosi <morph@debian.org>
 Date: Tue, 30 Sep 2014 17:38:05 -0400
 Subject: Adapt documentation build process for Debian packaging purposes
@@ -8,17 +8,18 @@ Forwarded: not-needed
 Last-Update: 2014-02-15
 Patch-Name: 20_build_doc_for_debian.patch
 ---
- Makefile | 1 +
- 1 file changed, 1 insertion(+)
+ Makefile | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
 
 diff --git a/Makefile b/Makefile
-index 5d58628..ac4c50f 100644
+index bcb13e8..dfe62cf 100644
 --- a/Makefile
 +++ b/Makefile
-@@ -143,6 +143,7 @@ docs: build
+@@ -143,7 +143,7 @@ docs: build
  	PYTHONSUFFIX=$$(python -V 2>&1 |awk '{print $$2}' |awk -F. '{print $$1 "." $$2}') && \
  	PYTHONPATH=$$(ls -d build/lib.*$$PYTHONSUFFIX):$$PYTHONPATH \
  	sphinx-build doc build/doc
+-	cp ChangeLog build/doc
 +	rst2html README.rst build/doc/README.html
  
  # Rebuild all documentation.

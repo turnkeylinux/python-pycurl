@@ -19,7 +19,7 @@ Here is how we can retrieve a network resource in Python 2::
 
     buffer = StringIO()
     c = pycurl.Curl()
-    c.setopt(c.URL, 'http://pycurl.sourceforge.net/')
+    c.setopt(c.URL, 'http://pycurl.io/')
     c.setopt(c.WRITEDATA, buffer)
     c.perform()
     c.close()
@@ -51,7 +51,7 @@ Python 3 version is slightly more complicated::
 
     buffer = BytesIO()
     c = pycurl.Curl()
-    c.setopt(c.URL, 'http://pycurl.sourceforge.net/')
+    c.setopt(c.URL, 'http://pycurl.io/')
     c.setopt(c.WRITEDATA, buffer)
     c.perform()
     c.close()
@@ -73,6 +73,22 @@ Python 2 and Python 3 versions can be combined. Doing so requires decoding
 the response body as in Python 3 version. The code for the combined
 example can be found in ``examples/quickstart/get.py``.
 
+
+Troubleshooting
+---------------
+
+When things don't work as expected, use libcurl's ``VERBOSE`` option to
+receive lots of debugging output pertaining to the request::
+
+    c.setopt(c.VERBOSE, True)
+
+It is often helpful to compare verbose output from the program using PycURL
+with that of ``curl`` command line tool when the latter is invoked with
+``-v`` option::
+
+    curl -v http://pycurl.io/
+
+
 Examining Response Headers
 --------------------------
 
@@ -93,32 +109,32 @@ examine the response headers::
         # On Python 2, decoding step can be skipped.
         # On Python 3, decoding step is required.
         header_line = header_line.decode('iso-8859-1')
-        
+
         # Header lines include the first status line (HTTP/1.x ...).
         # We are going to ignore all lines that don't have a colon in them.
         # This will botch headers that are split on multiple lines...
         if ':' not in header_line:
             return
-        
+
         # Break the header line into header name and value.
         name, value = header_line.split(':', 1)
-        
+
         # Remove whitespace that may be present.
         # Header lines include the trailing newline, and there may be whitespace
         # around the colon.
         name = name.strip()
         value = value.strip()
-        
+
         # Header names are case insensitive.
         # Lowercase name here.
         name = name.lower()
-        
+
         # Now we can actually record the header name and value.
         headers[name] = value
 
     buffer = BytesIO()
     c = pycurl.Curl()
-    c.setopt(c.URL, 'http://pycurl.sourceforge.net')
+    c.setopt(c.URL, 'http://pycurl.io')
     c.setopt(c.WRITEFUNCTION, buffer.write)
     # Set our header function.
     c.setopt(c.HEADERFUNCTION, header_function)
@@ -151,6 +167,7 @@ That was a lot of code for something very straightforward. Unfortunately,
 as libcurl refrains from allocating memory for response data, it is on our
 application to perform this grunt work.
 
+
 Writing To A File
 -----------------
 
@@ -163,7 +180,7 @@ for a change::
     # can write response body to it without decoding.
     with open('out.html', 'wb') as f:
         c = pycurl.Curl()
-        c.setopt(c.URL, 'http://pycurl.sourceforge.net/')
+        c.setopt(c.URL, 'http://pycurl.io/')
         c.setopt(c.WRITEDATA, f)
         c.perform()
         c.close()
@@ -172,6 +189,7 @@ This code is available as ``examples/quickstart/write_file.py``.
 
 The important part is opening the file in binary mode - then response body
 can be written bytewise without decoding or encoding steps.
+
 
 Following Redirects
 -------------------
@@ -194,6 +212,7 @@ This code is available as ``examples/quickstart/follow_redirect.py``.
 As we did not set a write callback, the default libcurl and PycURL behavior
 to write response body to standard output takes effect.
 
+
 Setting Options
 ---------------
 
@@ -204,6 +223,7 @@ option names by removing the ``CURLOPT_`` prefix. Thus, ``CURLOPT_URL``
 becomes simply ``URL``.
 
 .. _curl_easy_setopt: http://curl.haxx.se/libcurl/c/curl_easy_setopt.html
+
 
 Examining Response
 ------------------
@@ -219,7 +239,7 @@ accessible via ``getinfo`` call as follows::
 
     buffer = BytesIO()
     c = pycurl.Curl()
-    c.setopt(c.URL, 'http://pycurl.sourceforge.net/')
+    c.setopt(c.URL, 'http://pycurl.io/')
     c.setopt(c.WRITEDATA, buffer)
     c.perform()
 
@@ -243,6 +263,7 @@ Thus, ``CURLINFO_RESPONSE_CODE`` becomes simply ``RESPONSE_CODE``.
 
 .. _curl_easy_getinfo: http://curl.haxx.se/libcurl/c/curl_easy_getinfo.html
 
+
 Sending Form Data
 -----------------
 
@@ -258,7 +279,7 @@ beforehand::
         from urllib import urlencode
 
     c = pycurl.Curl()
-    c.setopt(c.URL, 'http://pycurl.sourceforge.net/tests/testpostvars.php')
+    c.setopt(c.URL, 'http://pycurl.io/tests/testpostvars.php')
 
     post_data = {'field': 'value'}
     # Form data must be provided already urlencoded.
@@ -278,6 +299,7 @@ methods can be specified via ``CUSTOMREQUEST`` option::
 
     c.setopt(c.CUSTOMREQUEST, 'PATCH')
 
+
 File Upload
 -----------
 
@@ -287,7 +309,7 @@ use ``FORM_FILE`` as follows::
     import pycurl
 
     c = pycurl.Curl()
-    c.setopt(c.URL, 'http://pycurl.sourceforge.net/tests/testfileupload.php')
+    c.setopt(c.URL, 'http://pycurl.io/tests/testfileupload.php')
 
     c.setopt(c.HTTPPOST, [
         ('fileupload', (
@@ -308,7 +330,7 @@ For example, to set a different filename and content type::
     import pycurl
 
     c = pycurl.Curl()
-    c.setopt(c.URL, 'http://pycurl.sourceforge.net/tests/testfileupload.php')
+    c.setopt(c.URL, 'http://pycurl.io/tests/testfileupload.php')
 
     c.setopt(c.HTTPPOST, [
         ('fileupload', (
@@ -331,7 +353,7 @@ If the file data is in memory, use ``BUFFER``/``BUFFERPTR`` as follows::
     import pycurl
 
     c = pycurl.Curl()
-    c.setopt(c.URL, 'http://pycurl.sourceforge.net/tests/testfileupload.php')
+    c.setopt(c.URL, 'http://pycurl.io/tests/testfileupload.php')
 
     c.setopt(c.HTTPPOST, [
         ('fileupload', (

@@ -144,7 +144,8 @@ values of different types:\n\
     # Python 3.x only:\n\
     c.setopt(pycurl.URL, b\"http://www.python.org/\")\n\
 \n\
-- ``HTTP200ALIASES``, ``HTTPHEADER``, ``POSTQUOTE``, ``PREQUOTE`` and\n\
+- ``HTTP200ALIASES``, ``HTTPHEADER``, ``POSTQUOTE``, ``PREQUOTE``,\n\
+  ``PROXYHEADER`` and\n\
   ``QUOTE`` accept a list or tuple of strings. The same rules apply to these\n\
   strings as do to string option values. Example::\n\
 \n\
@@ -189,7 +190,7 @@ For example, ``pycurl.VERBOSE`` has the value 42, and may be set as follows::\n\
 \n\
     c.setopt(42, 1)\n\
 \n\
-*setopt* can reset an option to its default value, performing the job of\n\
+*setopt* can reset some options to their default value, performing the job of\n\
 :py:meth:`pycurl.Curl.unsetopt`, if ``None`` is passed\n\
 for the option value. The following two calls are equivalent::\n\
 \n\
@@ -202,13 +203,45 @@ option or its value.\n\
 \n\
 .. _curl_easy_setopt: http://curl.haxx.se/libcurl/c/curl_easy_setopt.html";
 
+PYCURL_INTERNAL const char curl_setopt_string_doc[] = "setopt_string(option, value) -> None\n\
+\n\
+Set curl session option to a string value.\n\
+\n\
+This method allows setting string options that are not officially supported\n\
+by PycURL, for example because they did not exist when the version of PycURL\n\
+being used was released.\n\
+:py:meth:`pycurl.Curl.setopt` should be used for setting options that\n\
+PycURL knows about.\n\
+\n\
+**Warning:** No checking is performed that *option* does, in fact,\n\
+expect a string value. Using this method incorrectly can crash the program\n\
+and may lead to a security vulnerability.\n\
+Furthermore, it is on the application to ensure that the *value* object\n\
+does not get garbage collected while libcurl is using it.\n\
+libcurl copies most string options but not all; one option whose value\n\
+is not copied by libcurl is `CURLOPT_POSTFIELDS`_.\n\
+\n\
+*option* would generally need to be given as an integer literal rather than\n\
+a symbolic constant.\n\
+\n\
+*value* can be a binary string or a Unicode string using ASCII code points,\n\
+same as with string options given to PycURL elsewhere.\n\
+\n\
+Example setting URL via ``setopt_string``::\n\
+\n\
+    import pycurl\n\
+    c = pycurl.Curl()\n\
+    c.setopt_string(10002, \"http://www.python.org/\")\n\
+\n\
+.. _CURLOPT_POSTFIELDS: http://curl.haxx.se/libcurl/c/CURLOPT_POSTFIELDS.html";
+
 PYCURL_INTERNAL const char curl_unsetopt_doc[] = "unsetopt(option) -> None\n\
 \n\
 Reset curl session option to its default value.\n\
 \n\
 Only some curl options may be reset via this method.\n\
 \n\
-libcurl does not provide a way to reset a single option to its default value;\n\
+libcurl does not provide a general way to reset a single option to its default value;\n\
 :py:meth:`pycurl.Curl.reset` resets all options to their default values,\n\
 otherwise :py:meth:`pycurl.Curl.setopt` must be called with whatever value\n\
 is the default. For convenience, PycURL provides this unsetopt method\n\

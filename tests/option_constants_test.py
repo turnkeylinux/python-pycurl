@@ -341,3 +341,108 @@ class OptionConstantsSettingTest(unittest.TestCase):
         self.curl.setopt(self.curl.USE_SSL, self.curl.USESSL_TRY)
         self.curl.setopt(self.curl.USE_SSL, self.curl.USESSL_CONTROL)
         self.curl.setopt(self.curl.USE_SSL, self.curl.USESSL_ALL)
+
+    def test_encoding(self):
+        # old name for ACCEPT_ENCODING
+        self.curl.setopt(self.curl.ENCODING, "")
+        self.curl.setopt(self.curl.ENCODING, "application/json")
+
+    @util.min_libcurl(7, 21, 6)
+    def test_accept_encoding(self):
+        self.curl.setopt(self.curl.ACCEPT_ENCODING, "")
+        self.curl.setopt(self.curl.ACCEPT_ENCODING, "application/json")
+
+    @util.min_libcurl(7, 21, 6)
+    def test_transfer_encoding(self):
+        self.curl.setopt(self.curl.TRANSFER_ENCODING, True)
+
+    @util.min_libcurl(7, 24, 0)
+    def test_accepttimeout_ms(self):
+        self.curl.setopt(self.curl.ACCEPTTIMEOUT_MS, 1000)
+
+    @util.min_libcurl(7, 25, 0)
+    def test_tcp_keepalive(self):
+        self.curl.setopt(self.curl.TCP_KEEPALIVE, True)
+
+    @util.min_libcurl(7, 25, 0)
+    def test_tcp_keepidle(self):
+        self.curl.setopt(self.curl.TCP_KEEPIDLE, 100)
+
+    @util.min_libcurl(7, 25, 0)
+    def test_tcp_keepintvl(self):
+        self.curl.setopt(self.curl.TCP_KEEPINTVL, 100)
+
+    @util.min_libcurl(7, 36, 0)
+    def test_expect_100_timeout_ms(self):
+        self.curl.setopt(self.curl.EXPECT_100_TIMEOUT_MS, 100)
+
+    @util.min_libcurl(7, 37, 0)
+    def test_headeropt(self):
+        self.curl.setopt(self.curl.HEADEROPT, self.curl.HEADER_UNIFIED)
+        self.curl.setopt(self.curl.HEADEROPT, self.curl.HEADER_SEPARATE)
+
+    @util.min_libcurl(7, 42, 0)
+    def test_path_as_is(self):
+        self.curl.setopt(self.curl.PATH_AS_IS, True)
+
+    @util.min_libcurl(7, 43, 0)
+    def test_pipewait(self):
+        self.curl.setopt(self.curl.PIPEWAIT, True)
+
+    def test_http_version(self):
+        self.curl.setopt(self.curl.HTTP_VERSION, self.curl.CURL_HTTP_VERSION_NONE)
+        self.curl.setopt(self.curl.HTTP_VERSION, self.curl.CURL_HTTP_VERSION_1_0)
+        self.curl.setopt(self.curl.HTTP_VERSION, self.curl.CURL_HTTP_VERSION_1_1)
+
+    @nose.plugins.attrib.attr('http2')
+    @util.min_libcurl(7, 33, 0)
+    def test_http_version_2_0(self):
+        self.curl.setopt(self.curl.HTTP_VERSION, self.curl.CURL_HTTP_VERSION_2_0)
+
+    @nose.plugins.attrib.attr('http2')
+    @util.min_libcurl(7, 43, 0)
+    def test_http_version_2(self):
+        self.curl.setopt(self.curl.HTTP_VERSION, self.curl.CURL_HTTP_VERSION_2)
+
+    @nose.plugins.attrib.attr('http2')
+    @util.min_libcurl(7, 47, 0)
+    def test_http_version_2tls(self):
+        self.curl.setopt(self.curl.HTTP_VERSION, self.curl.CURL_HTTP_VERSION_2TLS)
+
+    @util.min_libcurl(7, 21, 5)
+    def test_sockopt_constants(self):
+        assert self.curl.SOCKOPT_OK is not None
+        assert self.curl.SOCKOPT_ERROR is not None
+        assert self.curl.SOCKOPT_ALREADY_CONNECTED is not None
+
+    @util.min_libcurl(7, 40, 0)
+    def test_proto_smb(self):
+        assert self.curl.PROTO_SMB is not None
+        assert self.curl.PROTO_SMBS is not None
+
+    @util.min_libcurl(7, 21, 4)
+    @util.only_ssl_backends('openssl', 'gnutls')
+    def test_tlsauth(self):
+        self.curl.setopt(self.curl.TLSAUTH_TYPE, "SRP")
+        self.curl.setopt(self.curl.TLSAUTH_USERNAME, "test")
+        self.curl.setopt(self.curl.TLSAUTH_PASSWORD, "test")
+
+    @util.min_libcurl(7, 45, 0)
+    def test_default_protocol(self):
+        self.curl.setopt(self.curl.DEFAULT_PROTOCOL, "http")
+
+    @util.min_libcurl(7, 20, 0)
+    def test_ftp_use_pret(self):
+        self.curl.setopt(self.curl.FTP_USE_PRET, True)
+
+    @util.min_libcurl(7, 34, 0)
+    def test_login_options(self):
+        self.curl.setopt(self.curl.LOGIN_OPTIONS, 'AUTH=NTLM')
+
+    @util.min_libcurl(7, 31, 0)
+    def test_sasl_ir(self):
+        self.curl.setopt(self.curl.SASL_IR, True)
+
+    @util.min_libcurl(7, 33, 0)
+    def test_xauth_bearer(self):
+        self.curl.setopt(self.curl.XOAUTH2_BEARER, 'test')

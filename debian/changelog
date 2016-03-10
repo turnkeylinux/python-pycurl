@@ -1,4 +1,4 @@
-pycurl (7.43.0-1) UNRELEASED; urgency=medium
+pycurl (7.43.0-1) unstable; urgency=medium
 
   * New upstream release.
   * d/control:
@@ -7,7 +7,7 @@ pycurl (7.43.0-1) UNRELEASED; urgency=medium
   * d/tests: Add a live test which downloads a well published resource.
     (Closes: #763770)
 
- -- Barry Warsaw <barry@debian.org>  Thu, 10 Mar 2016 09:48:57 -0500
+ -- Barry Warsaw <barry@debian.org>  Thu, 10 Mar 2016 11:19:37 -0500
 
 pycurl (7.21.5-1) unstable; urgency=medium
 

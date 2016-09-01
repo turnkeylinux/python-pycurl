@@ -3,6 +3,7 @@ pycurl (7.43.0-2) UNRELEASED; urgency=medium
   * Fixed VCS URL (https)
   * Bump debhelper compat version to 9
   * Standards-Version is 3.9.8 now (no changes needed)
+  * Removed privacy breach in docs
 
  -- Ondřej Nový <novy@ondrej.org>  Tue, 29 Mar 2016 21:48:29 +0200
 

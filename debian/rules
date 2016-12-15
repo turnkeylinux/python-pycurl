@@ -13,6 +13,15 @@ CURLVERS := $(strip $(shell /usr/bin/curl-config --version | awk '{print $$2}'))
 unexport LDFLAGS
 export FFLAGS="-fPIC"
 
+# Prevent network access for local builds by proxying HTTP/HTTPS to the
+# discard port.  If we were using pybuild, this would happen automatically,
+# but not having it potentially allows local builds to succeed where official
+# buildds (which by default block network access during package build) would
+# fail.
+export http_proxy = http://127.0.0.1:9/
+export https_proxy = https://127.0.0.1:9/
+
+
 %:
 	dh $@ --with python2,python3,sphinxdoc
 

@@ -1,8 +1,8 @@
 Source: pycurl
 Section: python
 Priority: optional
-Maintainer: Barry Warsaw <barry@debian.org>
-Uploaders: Debian Python Modules Team <python-modules-team@lists.alioth.debian.org>,
+Maintainer: Debian Python Modules Team <python-modules-team@lists.alioth.debian.org>
+Uploaders: Barry Warsaw <barry@debian.org>
 Build-Depends: debhelper (>= 9),
                dh-python,
                libcurl4-gnutls-dev (>= 7.19.0),

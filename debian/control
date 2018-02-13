@@ -22,8 +22,8 @@ Standards-Version: 3.9.8
 X-Python-Version: all
 X-Python3-Version: >= 3.3
 Homepage: http://pycurl.sourceforge.net
-Vcs-Git: https://anonscm.debian.org/git/python-modules/packages/pycurl.git
-Vcs-Browser: https://anonscm.debian.org/cgit/python-modules/packages/pycurl.git
+Vcs-Git: https://salsa.debian.org/python-team/modules/pycurl.git
+Vcs-Browser: https://salsa.debian.org/python-team/modules/pycurl
 
 Package: python-pycurl
 Architecture: any

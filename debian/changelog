@@ -6,6 +6,7 @@ pycurl (7.43.0-3) UNRELEASED; urgency=medium
   [ Ondřej Nový ]
   * d/control: Set Vcs-* to salsa.debian.org
   * d/copyright: Use https protocol in Format field
+  * d/control: Deprecating priority extra as per policy 4.0.1
 
  -- Barry Warsaw <barry@debian.org>  Sun, 27 Aug 2017 23:35:02 -0400
 

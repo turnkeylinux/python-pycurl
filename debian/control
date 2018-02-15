@@ -59,7 +59,6 @@ Description: Python bindings to libcurl (Python 3)
 
 Package: python-pycurl-dbg
 Section: debug
-Priority: extra
 Architecture: any
 Depends: python-dbg,
          python-pycurl (= ${binary:Version}),
@@ -73,7 +72,6 @@ Description: Python bindings to libcurl (debug extension)
 
 Package: python3-pycurl-dbg
 Section: debug
-Priority: extra
 Architecture: any
 Depends: python3-dbg,
          python3-pycurl (= ${binary:Version}),

@@ -9,6 +9,7 @@ pycurl (7.43.0-3) UNRELEASED; urgency=medium
   * d/control: Deprecating priority extra as per policy 4.0.1
   * d/watch: Use https protocol
   * d/changelog: Remove trailing whitespaces
+  * d/tests: Use AUTOPKGTEST_TMP instead of ADTTMP
 
  -- Barry Warsaw <barry@debian.org>  Sun, 27 Aug 2017 23:35:02 -0400
 

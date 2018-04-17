@@ -1,6 +1,6 @@
 #!/bin/sh
 
-cat > $ADTTMP/livetest.py <<EOF
+cat > $AUTOPKGTEST_TMP/livetest.py <<EOF
 from __future__ import print_function
 
 import io
@@ -22,11 +22,11 @@ EOF
 for py in `pyversions -i`
 do
     $py --version
-    $py $ADTTMP/livetest.py
+    $py $AUTOPKGTEST_TMP/livetest.py
 done
 
 for py in `py3versions -i`
 do
     $py --version
-    $py $ADTTMP/livetest.py
+    $py $AUTOPKGTEST_TMP/livetest.py
 done

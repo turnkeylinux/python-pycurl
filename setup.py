@@ -60,7 +60,7 @@ class ExtensionConfiguration(object):
         self.argv = argv
         self.original_argv = argv[:]
         self.include_dirs = []
-        self.define_macros = [("PYCURL_VERSION", '"%s"' % VERSION), ('HAVE_CURL_GNUTLS', 1) ]
+        self.define_macros = [("PYCURL_VERSION", '"%s"' % VERSION)]
         self.library_dirs = []
         self.libraries = []
         self.runtime_library_dirs = []

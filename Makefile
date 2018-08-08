@@ -143,7 +143,7 @@ docs: build
 	PYTHONSUFFIX=$$(python -V 2>&1 |awk '{print $$2}' |awk -F. '{print $$1 "." $$2}') && \
 	PYTHONPATH=$$(ls -d build/lib.*$$PYTHONSUFFIX):$$PYTHONPATH \
 	sphinx-build doc build/doc
-	rst2html README.rst build/doc/README.html
+	cp ChangeLog build/doc
 
 # Rebuild all documentation.
 # As sphinx extracts documentation from pycurl modules, docs targets

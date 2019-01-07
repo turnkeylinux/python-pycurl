@@ -103,7 +103,7 @@ To force pip to recompile pycurl, run::
     pip install --upgrade pip
 
     # remove current pycurl
-    pip remove pycurl
+    pip uninstall pycurl
 
     # set PYCURL_SSL_LIBRARY
     export PYCURL_SSL_LIBRARY=nss
@@ -149,12 +149,12 @@ from source.
 Currently official PycURL packages are built against the following Python
 versions:
 
-- 2.6.6
 - 2.7.10
 - 3.2.5
 - 3.3.5
 - 3.4.3
-- 3.5.0
+- 3.5.2
+- 3.6.0
 
 If the C runtime library (MSVCRT.DLL) versions used by PycURL and Python
 do not match, you will receive a message
@@ -167,22 +167,24 @@ To identify which MSVCRT version your Python uses use the
 `Dependency Walker`_ and look for `msvcrt.dll variants`_ being loaded.
 You may find `the entire thread starting here`_ helpful.
 
-.. _application profiling feature: http://curl.haxx.se/mail/curlpython-2014-05/0007.html
+.. _application profiling feature: https://curl.haxx.se/mail/curlpython-2014-05/0007.html
 .. _Dependency Walker: http://www.dependencywalker.com/
-.. _msvcrt.dll variants: http://curl.haxx.se/mail/curlpython-2014-05/0010.html
-.. _the entire thread starting here: http://curl.haxx.se/mail/curlpython-2014-05/0000.html
+.. _msvcrt.dll variants: https://curl.haxx.se/mail/curlpython-2014-05/0010.html
+.. _the entire thread starting here: https://curl.haxx.se/mail/curlpython-2014-05/0000.html
 
 
 Building From Source
 ^^^^^^^^^^^^^^^^^^^^
 
 Building PycURL from source is not for the faint of heart due to the multitude
-of possible dependencies. Additionally different dependencies have different
+of possible dependencies and each of these dependencies having its own
+directory structure, configuration style, parameters and quirks.
+Additionally different dependencies have different
 settings for MSVCRT usage, and an application must have all of its parts
 agreeing on a single setting. If you decide to build PycURL from source
-you should familiarize yourself with the ``winbuild.py``
-script - it is used to build the official binaries and tweaking it for
-your environment is likely to be less work than starting from scratch.
+it is advisable to look through the ``winbuild.py``
+script - it is used to build the official binaries and contains a wealth
+of information for compiling PycURL's dependencies on Windows.
 
 If you are compiling PycURL from source it is recommended to compile all of its
 dependencies from source as well. Using precompiled libraries may lead to
@@ -217,6 +219,9 @@ Additional Windows setup.py options:
 - ``--with-openssl``: use OpenSSL crypto locks when libcurl was built against
   OpenSSL.
 - ``--with-ssl``: legacy alias for ``--with-openssl``.
+- ``--openssl-lib-name=""``: specify a different name for OpenSSL import
+  library containing CRYPTO_num_locks. For OpenSSL 1.1.0+ this should be set
+  to an empty string as given here.
 - ``--avoid-stdio``: on Windows, a process and each library it is using
   may be linked to its own version of the C runtime (MSVCRT).
   FILE pointers from one C runtime may not be passed to another C runtime.
@@ -237,8 +242,8 @@ executable installer that you can run to install PycURL.
 
 You may find the following mailing list posts helpful:
 
-- http://curl.haxx.se/mail/curlpython-2009-11/0010.html
-- http://curl.haxx.se/mail/curlpython-2013-11/0002.html
+- https://curl.haxx.se/mail/curlpython-2009-11/0010.html
+- https://curl.haxx.se/mail/curlpython-2013-11/0002.html
 
 
 winbuild.py
@@ -253,7 +258,7 @@ Prerequisites:
 - `Git for Windows`_.
 - Appropriate `Python versions`_ installed.
 - MS Visual C++ 9/2008 for Python <= 3.2, MS Visual C++ 10/2010 for
-  Python 3.3 or 3.4, MS Visual C++ 14/2015 for Python 3.5.
+  Python 3.3 or 3.4, MS Visual C++ 14/2015 for Python 3.5 or 3.6.
   Express versions of Visual Studio work fine for this,
   although getting 64 bit compilers to wok in some Express versions involves
   jumping through several hoops.
@@ -267,7 +272,7 @@ Prerequisites:
 
 ``winbuild.py`` assumes all programs are installed in their default locations,
 if this is not the case edit it as needed. ``winbuild.py`` itself can be run
-with any Python it supports - 2.6, 2.7 or 3.2 through 3.5.
+with any Python it supports - 2.7 or 3.2 through 3.6.
 
 .. _`download area`: https://dl.bintray.com/pycurl/pycurl/
 
@@ -324,7 +329,7 @@ and most SSL libraries do not provide.
 
 Here_ is a good resource on how to build your own certificate bundle.
 certifie.com also has a `prebuilt certificate bundle`_.
-To use the certificate bundle, use ``CAINFO`` or ``CAPPATH`` PycURL
+To use the certificate bundle, use ``CAINFO`` or ``CAPATH`` PycURL
 options.
 
 .. _Here: http://certifie.com/ca-bundle/

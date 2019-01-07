@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 # vi:ts=4:et
 
+from . import localhost
 import pycurl
 import unittest
 import nose.plugins.attrib
@@ -73,7 +74,7 @@ class OptionConstantsTest(unittest.TestCase):
     @util.min_libcurl(7, 19, 4)
     def test_noproxy_setopt(self):
         curl = pycurl.Curl()
-        curl.setopt(curl.NOPROXY, 'localhost')
+        curl.setopt(curl.NOPROXY, localhost)
         curl.close()
 
     # CURLOPT_PROTOCOLS was introduced in libcurl-7.19.4
@@ -200,6 +201,7 @@ class OptionConstantsTest(unittest.TestCase):
         curl.close()
 
     @util.min_libcurl(7, 39, 0)
+    @util.only_ssl
     def test_pinnedpublickey(self):
         curl = pycurl.Curl()
         curl.setopt(curl.PINNEDPUBLICKEY, '/etc/publickey.der')
@@ -211,6 +213,7 @@ class OptionConstantsTest(unittest.TestCase):
         curl.setopt(curl.WILDCARDMATCH, '*')
         curl.close()
 
+    @util.only_unix
     @util.min_libcurl(7, 40, 0)
     def test_unix_socket_path(self):
         curl = pycurl.Curl()
@@ -256,6 +259,49 @@ class OptionConstantsTest(unittest.TestCase):
     def test_capath(self):
         curl = pycurl.Curl()
         curl.setopt(curl.CAPATH, '/bogus-capath')
+        curl.close()
+
+    # CURLOPT_PROXY_CAPATH was introduced in libcurl-7.52.0
+    @util.min_libcurl(7, 52, 0)
+    @util.only_ssl
+    def test_proxy_capath(self):
+        curl = pycurl.Curl()
+        curl.setopt(curl.PROXY_CAPATH, '/bogus-capath')
+        curl.close()
+
+    @util.min_libcurl(7, 52, 0)
+    @util.only_ssl
+    def test_proxy_sslcert(self):
+        curl = pycurl.Curl()
+        curl.setopt(curl.PROXY_SSLCERT, '/bogus-sslcert')
+        curl.close()
+
+    @util.min_libcurl(7, 52, 0)
+    @util.only_ssl
+    def test_proxy_sslcerttype(self):
+        curl = pycurl.Curl()
+        curl.setopt(curl.PROXY_SSLCERTTYPE, 'PEM')
+        curl.close()
+
+    @util.min_libcurl(7, 52, 0)
+    @util.only_ssl
+    def test_proxy_sslkey(self):
+        curl = pycurl.Curl()
+        curl.setopt(curl.PROXY_SSLKEY, '/bogus-sslkey')
+        curl.close()
+
+    @util.min_libcurl(7, 52, 0)
+    @util.only_ssl
+    def test_proxy_sslkeytype(self):
+        curl = pycurl.Curl()
+        curl.setopt(curl.PROXY_SSLKEYTYPE, 'PEM')
+        curl.close()
+
+    @util.min_libcurl(7, 52, 0)
+    @util.only_ssl
+    def test_proxy_ssl_verifypeer(self):
+        curl = pycurl.Curl()
+        curl.setopt(curl.PROXY_SSL_VERIFYPEER, 1)
         curl.close()
 
     @util.only_ssl
@@ -420,6 +466,8 @@ class OptionConstantsSettingTest(unittest.TestCase):
         assert self.curl.PROTO_SMB is not None
         assert self.curl.PROTO_SMBS is not None
 
+    # Apparently TLSAUTH_TYPE=SRP is an unknown option on appveyor
+    @util.only_unix
     @util.min_libcurl(7, 21, 4)
     @util.only_ssl_backends('openssl', 'gnutls')
     def test_tlsauth(self):
@@ -446,3 +494,6 @@ class OptionConstantsSettingTest(unittest.TestCase):
     @util.min_libcurl(7, 33, 0)
     def test_xauth_bearer(self):
         self.curl.setopt(self.curl.XOAUTH2_BEARER, 'test')
+        
+    def test_cookielist_constants(self):
+        self.assertEqual(pycurl.OPT_COOKIELIST, pycurl.COOKIELIST)

@@ -1,7 +1,8 @@
-pycurl (7.43.0-3) UNRELEASED; urgency=medium
+pycurl (7.43.0.2-0.1) unstable; urgency=medium
 
-  [ Barry Warsaw ]
-  * d/control: Put DPMT in Maintainers and myself in Uploaders.
+  [ Iain R. Learmonth ]
+  * Non maintainer upload
+  * New upstream release
 
   [ Ondřej Nový ]
   * d/control: Set Vcs-* to salsa.debian.org
@@ -12,9 +13,33 @@ pycurl (7.43.0-3) UNRELEASED; urgency=medium
   * d/tests: Use AUTOPKGTEST_TMP instead of ADTTMP
   * d/control: Remove ancient X-Python3-Version field
   * Convert git repository from git-dpm to gbp layout
-  * Use debhelper-compat instead of debian/compat.
 
- -- Barry Warsaw <barry@debian.org>  Sun, 27 Aug 2017 23:35:02 -0400
+ -- Iain R. Learmonth <irl@debian.org>  Mon, 07 Jan 2019 11:00:03 +0000
+
+pycurl (7.43.0.1-0.2) unstable; urgency=medium
+
+  * Non-maintainer upload
+  * d/control:
+   - Updates versioned dependency on libcurl
+
+  The work for this change was supported by the European Union under grant
+  agreement No. 688421. This support does not imply endorsement.
+
+ -- Iain R. Learmonth <irl@debian.org>  Thu, 01 Feb 2018 20:23:45 +0000
+
+pycurl (7.43.0.1-0.1) unstable; urgency=medium
+
+  [ Iain R. Learmonth ]
+  * Non-maintainer upload
+  * New upstream release (Closes: #886486)
+
+  [ Barry Warsaw ]
+  * d/control: Put DPMT in Maintainers and myself in Uploaders.
+
+  The work for this change was supported by the European Union under grant
+  agreement No. 688421. This support does not imply endorsement.
+
+ -- Iain R. Learmonth <irl@debian.org>  Mon, 22 Jan 2018 08:34:00 +0000
 
 pycurl (7.43.0-2) unstable; urgency=medium
 

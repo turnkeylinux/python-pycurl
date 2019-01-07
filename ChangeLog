@@ -1,3 +1,121 @@
+Version 7.43.0.2 [requires libcurl-7.19.0 or better] - 2018-06-02
+-----------------------------------------------------------------
+
+        * Official Windows builds now include HTTP 2 support via
+          libnghttp2 and international domain name support via WINIDN.
+
+        * Added perform_rb and perform_rs methods to Curl objects to
+          return response body as byte string and string, respectively.
+
+        * Added OPT_COOKIELIST constant for consistency with other
+          option constants.
+
+        * PycURL is now able to report errors triggered by libcurl
+          via CURLOPT_FAILONERROR mechanism when the error messages are
+          not decodable in Python's default encoding (GitHub issue #259).
+
+        * Added getinfo_raw method to Curl objects to return byte strings
+          as is from libcurl without attempting to decode them
+          (GitHub issue #493).
+
+        * When adding a Curl easy object to CurlMulti via add_handle,
+          the easy objects now have their reference counts increased so that
+          the application is no longer required to keep references to them
+          to keep them from being garbage collected (GitHub issue #171).
+
+        * PycURL easy, multi and share objects can now be weak referenced.
+
+        * Python 3.2 and 3.3 support officially dropped as those versions
+          are end of lifed.
+
+        * set_ca_certs now accepts byte strings as it should have been
+          all along.
+
+        * PycURL now skips automatic SSL backend detection if curl-config
+          indicates that libcurl is not built with SSL support, and will warn
+          if an SSL backend is explicitly specified in this case.
+
+        * PycURL now requires that SSL backend is determined by setup.py
+          to provide earlier failure compared to the existing warning
+          during compilation and failing during module import on mismatched
+          SSL backends.
+
+        * Use OpenSSL 1.1 and 1.0 specific APIs for controlling thread locks
+          depending on OpenSSL version (patch by Vitaly Murashev).
+
+        * Fixed a crash when closesocket callback failed (patch by
+          Gisle Vanem and toddrme2178).
+
+        * Added CURLOPT_PROXY_SSLCERT, CURLOPT_PROXY_SSLCERTTYPE,
+          CURLOPT_PROXY_SSLKEY, CURLOPT_PROXY_SSLKEYTYPE,
+          CURLOPT_PROXY_SSL_VERIFYPEER (libcurl 7.52.0+,
+          patch by Casey Miller).
+
+        * Added CURLOPT_PRE_PROXY (libcurl 7.52.0+, patch by ziggy).
+
+        * Support for Python 2.6 officially dropped.
+
+        * Added SOCKET_BAD constant and it is now recognized as a valid
+          return value from OPENSOCKET callback.
+
+        * BoringSSL is now recognized as equivalent to OpenSSL backend
+          (patch by Gisle Vanem).
+
+
+Version 7.43.0.1 [requires libcurl-7.19.0 or better] - 2017-12-07
+-----------------------------------------------------------------
+
+        * WRITEHEADER/WRITEFUNCTION and WRITEDATA/WRITEFUNCTION can now
+          be set on the same handle. The last call will take precedence over
+          previous calls. Previously some combinations were not allowed.
+
+        * Fixed a crash when using WRITEDATA with a file-like object followed
+          by WRITEDATA with a real file object (patch by Léo El Amri).
+
+        * Fixed a theoretical memory leak in module initialization (patch by
+          ideal).
+
+        * Added support for CURL_SSLVERSION_MAX_* constants (libcurl 7.52.0+,
+          patch by Jozef Melicher).
+
+        * Added support for CURLSSH_AUTH_AGENT (libcurl 7.28.0+,
+          patch by kxrd).
+
+        * Added support for CURLOPT_CONNECT_TO (patch by Iain R. Learmonth).
+
+        * Added support for CURLINFO_HTTP_VERSION (patch by Iain R. Learmonth).
+
+        * Fixed build against OpenSSL l.1 on Windows.
+
+        * Added set_ca_certs method to the Easy object to set CA certificates
+          from a string (OpenSSL only, patch by Lipin Dmitriy).
+
+        * Python 3.6 is now officially supported (patch by Samuel
+          Dion-Girardeau).
+
+        * Added support for CURLOPT_PROXY_CAPATH (libcurl 7.52.0+,
+          patch by Jan Kryl).
+
+        * C-Ares updated to 1.12.0 in Windows builds, fixing DNS resolution
+          issues on Windows (patch by Wei C).
+
+        * Added --openssl-lib-name="" option to support building against
+          OpenSSL 1.1.0 on Windows.
+
+        * Fixed a possible double free situation in all Curl objects
+          due to a misuse of the trashcan API (patch by Benjamin Peterson).
+
+        * High level Curl objects can now be reused.
+
+        * LARGE options fixed under Windows and Python 3 (INFILESIZE,
+          MAX_RECV_SPEED_LARGE, MAX_SEND_SPEED_LARGE, MAXFILESIZE,
+          POSTFILESIZE, RESUME_FROM).
+
+        * Fixed compilation on Solaris (patch by Yiteng Zhang).
+
+        * ENCODING option can now be unset (patch by Yves Bastide).
+
+
 Version 7.43.0 [requires libcurl-7.19.0 or better] - 2016-02-02
 ---------------------------------------------------------------
 
@@ -277,7 +395,7 @@ Version 7.19.5 [requires libcurl-7.21.2 or better] - 2014-07-12
           (they were accessible as e.g. type(pycurl.Curl()), but could not be
           instantiated, nor could class methods be obtained from the classes.
           Please see this mailing list post for further information:
-          http://curl.haxx.se/mail/curlpython-2014-06/0004.html
+          https://curl.haxx.se/mail/curlpython-2014-06/0004.html
 
         * When passing a file-like object to READDATA option, PycURL was
           mistakenly looking for write method on this object. Now read method
@@ -441,7 +559,7 @@ Version 7.19.0.3 [requires libcurl-7.19.0 or better] - 2013-12-24
 
         * Re-release of 7.19.0.2 with minor changes to build Windows packages
           due to botched 7.19.0.2 files on PyPi.
-          http://curl.haxx.se/mail/curlpython-2013-12/0021.html
+          https://curl.haxx.se/mail/curlpython-2013-12/0021.html
 
 
 Version 7.19.0.2 [requires libcurl-7.19.0 or better] - 2013-10-08

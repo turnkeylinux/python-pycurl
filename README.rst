@@ -22,15 +22,15 @@ libcurl, including:
 
 .. _was benchmarked: http://stackoverflow.com/questions/15461995/python-requests-vs-pycurl-performance
 .. _requests: http://python-requests.org/
-.. _Multi: http://curl.haxx.se/libcurl/c/libcurl-multi.html
-.. _share: http://curl.haxx.se/libcurl/c/libcurl-share.html
+.. _Multi: https://curl.haxx.se/libcurl/c/libcurl-multi.html
+.. _share: https://curl.haxx.se/libcurl/c/libcurl-share.html
 .. _Tornado: http://www.tornadoweb.org/
 
 
 Requirements
 ------------
 
-- Python 2.6, 2.7 or 3.1 through 3.5.
+- Python 2.7 or 3.4 through 3.6.
 - libcurl 7.19.0 or better.
 
 
@@ -57,7 +57,7 @@ Documentation for the most recent PycURL release is available on
 `PycURL website <http://pycurl.io/docs/latest/>`_.
 
 Documentation for the development version of PycURL
-is available `here <pycurl.io/docs/dev/>`.
+is available `here <http://pycurl.io/docs/dev/>`_.
 
 To build documentation from source, run ``make docs``.
 Building documentation requires `Sphinx <http://sphinx-doc.org/>`_ to
@@ -80,7 +80,7 @@ reports and direct questions to our mailing list instead.
 
 .. _curl-and-python mailing list: http://cool.haxx.se/mailman/listinfo/curl-and-python
 .. _Stack Overflow: http://stackoverflow.com/questions/tagged/pycurl
-.. _Mailing list archives: http://curl.haxx.se/mail/list.cgi?list=curl-and-python
+.. _Mailing list archives: https://curl.haxx.se/mail/list.cgi?list=curl-and-python
 .. _via GitHub: https://github.com/pycurl/pycurl/issues
 
 
@@ -174,7 +174,7 @@ License
 
     Copyright (C) 2001-2008 by Kjetil Jacobsen <kjetilja at gmail.com>
     Copyright (C) 2001-2008 by Markus F.X.J. Oberhumer <markus at oberhumer.com>
-    Copyright (C) 2013-2016 by Oleg Pudeyev <oleg at bsdpower.com>
+    Copyright (C) 2013-2018 by Oleg Pudeyev <oleg at bsdpower.com>
 
     All rights reserved.
 
@@ -185,7 +185,7 @@ License
     according to the terms of either license.
 
 .. _PycURL: http://pycurl.io/
-.. _libcurl: http://curl.haxx.se/libcurl/
+.. _libcurl: https://curl.haxx.se/libcurl/
 .. _urllib: http://docs.python.org/library/urllib.html
 .. _`the repository`: https://github.com/pycurl/pycurl
 .. _`mailing list`: http://cool.haxx.se/mailman/listinfo/curl-and-python

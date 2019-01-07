@@ -22,50 +22,178 @@ automatically called by pycurl when a Curl object no longer has any\n\
 references to it, but can also be called explicitly.\n\
 \n\
 .. _curl_easy_cleanup:\n\
-    http://curl.haxx.se/libcurl/c/curl_easy_cleanup.html";
+    https://curl.haxx.se/libcurl/c/curl_easy_cleanup.html";
 
 PYCURL_INTERNAL const char curl_errstr_doc[] = "errstr() -> string\n\
 \n\
 Return the internal libcurl error buffer of this handle as a string.\n\
 \n\
-Return value is a ``str`` instance on all Python versions.";
+Return value is a ``str`` instance on all Python versions.\n\
+On Python 3, error buffer data is decoded using Python's default encoding\n\
+at the time of the call. If this decoding fails, ``UnicodeDecodeError`` is\n\
+raised. Use :ref:`errstr_raw <errstr_raw>` to retrieve the error buffer\n\
+as a byte string in this case.\n\
+\n\
+On Python 2, ``errstr`` and ``errstr_raw`` behave identically.";
 
-PYCURL_INTERNAL const char curl_getinfo_doc[] = "getinfo(info) -> Result\n\
+PYCURL_INTERNAL const char curl_errstr_raw_doc[] = "errstr_raw() -> byte string\n\
 \n\
-Extract and return information from a curl session.\n\
+Return the internal libcurl error buffer of this handle as a byte string.\n\
 \n\
-Corresponds to `curl_easy_getinfo`_ in libcurl, where *option* is\n\
-the same as the ``CURLINFO_*`` constants in libcurl, except that the\n\
-``CURLINFO_`` prefix has been removed. (See below for exceptions.)\n\
-*Result* contains an integer, float or string, depending on which\n\
-option is given. The ``getinfo`` method should not be called unless\n\
+Return value is a ``str`` instance on Python 2 and ``bytes`` instance\n\
+on Python 3. Unlike :ref:`errstr_raw <errstr_raw>`, ``errstr_raw``\n\
+allows reading libcurl error buffer in Python 3 when its contents is not\n\
+valid in Python's default encoding.\n\
+\n\
+On Python 2, ``errstr`` and ``errstr_raw`` behave identically.\n\
+\n\
+*Added in version 7.43.0.2.*";
+
+PYCURL_INTERNAL const char curl_getinfo_doc[] = "getinfo(option) -> Result\n\
+\n\
+Extract and return information from a curl session,\n\
+decoding string data in Python's default encoding at the time of the call.\n\
+Corresponds to `curl_easy_getinfo`_ in libcurl.\n\
+The ``getinfo`` method should not be called unless\n\
 ``perform`` has been called and finished.\n\
 \n\
-In order to distinguish between similarly-named CURLOPT and CURLINFO\n\
-constants, some have ``OPT_`` and ``INFO_`` prefixes. These are\n\
-``INFO_FILETIME``, ``OPT_FILETIME``, ``INFO_COOKIELIST`` (but ``setopt`` uses\n\
-``COOKIELIST``!), ``INFO_CERTINFO``, and ``OPT_CERTINFO``.\n\
+*option* is a constant corresponding to one of the\n\
+``CURLINFO_*`` constants in libcurl. Most option constant names match\n\
+the respective ``CURLINFO_*`` constant names with the ``CURLINFO_`` prefix\n\
+removed, for example ``CURLINFO_CONTENT_TYPE`` is accessible as\n\
+``pycurl.CONTENT_TYPE``. Exceptions to this rule are as follows:\n\
 \n\
-The value returned by ``getinfo(INFO_CERTINFO)`` is a list with one element\n\
-per certificate in the chain, starting with the leaf; each element is a\n\
-sequence of *(key, value)* tuples.\n\
+- ``CURLINFO_FILETIME`` is mapped as ``pycurl.INFO_FILETIME``\n\
+- ``CURLINFO_COOKIELIST`` is mapped as ``pycurl.INFO_COOKIELIST``\n\
+- ``CURLINFO_CERTINFO`` is mapped as ``pycurl.INFO_CERTINFO``\n\
+- ``CURLINFO_RTSP_CLIENT_CSEQ`` is mapped as ``pycurl.INFO_RTSP_CLIENT_CSEQ``\n\
+- ``CURLINFO_RTSP_CSEQ_RECV`` is mapped as ``pycurl.INFO_RTSP_CSEQ_RECV``\n\
+- ``CURLINFO_RTSP_SERVER_CSEQ`` is mapped as ``pycurl.INFO_RTSP_SERVER_CSEQ``\n\
+- ``CURLINFO_RTSP_SESSION_ID`` is mapped as ``pycurl.INFO_RTSP_SESSION_ID``\n\
+\n\
+The type of return value depends on the option, as follows:\n\
+\n\
+- Options documented by libcurl to return an integer value return a\n\
+  Python integer (``long`` on Python 2, ``int`` on Python 3).\n\
+- Options documented by libcurl to return a floating point value\n\
+  return a Python ``float``.\n\
+- Options documented by libcurl to return a string value\n\
+  return a Python string (``str`` on Python 2 and Python 3).\n\
+  On Python 2, the string contains whatever data libcurl returned.\n\
+  On Python 3, the data returned by libcurl is decoded using the\n\
+  default string encoding at the time of the call.\n\
+  If the data cannot be decoded using the default encoding, ``UnicodeDecodeError``\n\
+  is raised. Use :ref:`getinfo_raw <getinfo_raw>`\n\
+  to retrieve the data as ``bytes`` in these\n\
+  cases.\n\
+- ``SSL_ENGINES`` and ``INFO_COOKIELIST`` return a list of strings.\n\
+  The same encoding caveats apply; use :ref:`getinfo_raw <getinfo_raw>`\n\
+  to retrieve the\n\
+  data as a list of byte strings.\n\
+- ``INFO_CERTINFO`` returns a list with one element\n\
+  per certificate in the chain, starting with the leaf; each element is a\n\
+  sequence of *(key, value)* tuples where both ``key`` and ``value`` are\n\
+  strings. String encoding caveats apply; use :ref:`getinfo_raw <getinfo_raw>`\n\
+  to retrieve\n\
+  certificate data as byte strings.\n\
+\n\
+On Python 2, ``getinfo`` and ``getinfo_raw`` behave identically.\n\
 \n\
 Example usage::\n\
 \n\
     import pycurl\n\
     c = pycurl.Curl()\n\
-    c.setopt(pycurl.URL, \"http://sf.net\")\n\
+    c.setopt(pycurl.OPT_CERTINFO, 1)\n\
+    c.setopt(pycurl.URL, \"https://python.org\")\n\
     c.setopt(pycurl.FOLLOWLOCATION, 1)\n\
     c.perform()\n\
-    print c.getinfo(pycurl.HTTP_CODE), c.getinfo(pycurl.EFFECTIVE_URL)\n\
-    ...\n\
-    --> 200 \"http://sourceforge.net/\"\n\
+    print(c.getinfo(pycurl.HTTP_CODE))\n\
+    # --> 200\n\
+    print(c.getinfo(pycurl.EFFECTIVE_URL))\n\
+    # --> \"https://www.python.org/\"\n\
+    certinfo = c.getinfo(pycurl.INFO_CERTINFO)\n\
+    print(certinfo)\n\
+    # --> [(('Subject', 'C = AU, ST = Some-State, O = PycURL test suite,\n\
+             CN = localhost'), ('Issuer', 'C = AU, ST = Some-State,\n\
+             O = PycURL test suite, OU = localhost, CN = localhost'),\n\
+            ('Version', '0'), ...)]\n\
 \n\
 \n\
 Raises pycurl.error exception upon failure.\n\
 \n\
 .. _curl_easy_getinfo:\n\
-    http://curl.haxx.se/libcurl/c/curl_easy_getinfo.html";
+    https://curl.haxx.se/libcurl/c/curl_easy_getinfo.html";
+
+PYCURL_INTERNAL const char curl_getinfo_raw_doc[] = "getinfo_raw(option) -> Result\n\
+\n\
+Extract and return information from a curl session,\n\
+returning string data as byte strings.\n\
+Corresponds to `curl_easy_getinfo`_ in libcurl.\n\
+The ``getinfo_raw`` method should not be called unless\n\
+``perform`` has been called and finished.\n\
+\n\
+*option* is a constant corresponding to one of the\n\
+``CURLINFO_*`` constants in libcurl. Most option constant names match\n\
+the respective ``CURLINFO_*`` constant names with the ``CURLINFO_`` prefix\n\
+removed, for example ``CURLINFO_CONTENT_TYPE`` is accessible as\n\
+``pycurl.CONTENT_TYPE``. Exceptions to this rule are as follows:\n\
+\n\
+- ``CURLINFO_FILETIME`` is mapped as ``pycurl.INFO_FILETIME``\n\
+- ``CURLINFO_COOKIELIST`` is mapped as ``pycurl.INFO_COOKIELIST``\n\
+- ``CURLINFO_CERTINFO`` is mapped as ``pycurl.INFO_CERTINFO``\n\
+- ``CURLINFO_RTSP_CLIENT_CSEQ`` is mapped as ``pycurl.INFO_RTSP_CLIENT_CSEQ``\n\
+- ``CURLINFO_RTSP_CSEQ_RECV`` is mapped as ``pycurl.INFO_RTSP_CSEQ_RECV``\n\
+- ``CURLINFO_RTSP_SERVER_CSEQ`` is mapped as ``pycurl.INFO_RTSP_SERVER_CSEQ``\n\
+- ``CURLINFO_RTSP_SESSION_ID`` is mapped as ``pycurl.INFO_RTSP_SESSION_ID``\n\
+\n\
+The type of return value depends on the option, as follows:\n\
+\n\
+- Options documented by libcurl to return an integer value return a\n\
+  Python integer (``long`` on Python 2, ``int`` on Python 3).\n\
+- Options documented by libcurl to return a floating point value\n\
+  return a Python ``float``.\n\
+- Options documented by libcurl to return a string value\n\
+  return a Python byte string (``str`` on Python 2, ``bytes`` on Python 3).\n\
+  The string contains whatever data libcurl returned.\n\
+  Use :ref:`getinfo <getinfo>` to retrieve this data as a Unicode string on Python 3.\n\
+- ``SSL_ENGINES`` and ``INFO_COOKIELIST`` return a list of byte strings.\n\
+  The same encoding caveats apply; use :ref:`getinfo <getinfo>` to retrieve the\n\
+  data as a list of potentially Unicode strings.\n\
+- ``INFO_CERTINFO`` returns a list with one element\n\
+  per certificate in the chain, starting with the leaf; each element is a\n\
+  sequence of *(key, value)* tuples where both ``key`` and ``value`` are\n\
+  byte strings. String encoding caveats apply; use :ref:`getinfo <getinfo>`\n\
+  to retrieve\n\
+  certificate data as potentially Unicode strings.\n\
+\n\
+On Python 2, ``getinfo`` and ``getinfo_raw`` behave identically.\n\
+\n\
+Example usage::\n\
+\n\
+    import pycurl\n\
+    c = pycurl.Curl()\n\
+    c.setopt(pycurl.OPT_CERTINFO, 1)\n\
+    c.setopt(pycurl.URL, \"https://python.org\")\n\
+    c.setopt(pycurl.FOLLOWLOCATION, 1)\n\
+    c.perform()\n\
+    print(c.getinfo_raw(pycurl.HTTP_CODE))\n\
+    # --> 200\n\
+    print(c.getinfo_raw(pycurl.EFFECTIVE_URL))\n\
+    # --> b\"https://www.python.org/\"\n\
+    certinfo = c.getinfo_raw(pycurl.INFO_CERTINFO)\n\
+    print(certinfo)\n\
+    # --> [((b'Subject', b'C = AU, ST = Some-State, O = PycURL test suite,\n\
+             CN = localhost'), (b'Issuer', b'C = AU, ST = Some-State,\n\
+             O = PycURL test suite, OU = localhost, CN = localhost'),\n\
+            (b'Version', b'0'), ...)]\n\
+\n\
+\n\
+Raises pycurl.error exception upon failure.\n\
+\n\
+*Added in version 7.43.0.2.*\n\
+\n\
+.. _curl_easy_getinfo:\n\
+    https://curl.haxx.se/libcurl/c/curl_easy_getinfo.html";
 
 PYCURL_INTERNAL const char curl_pause_doc[] = "pause(bitmask) -> None\n\
 \n\
@@ -78,7 +206,7 @@ derived from the ``PAUSE_RECV``, ``PAUSE_SEND``, ``PAUSE_ALL`` and\n\
 \n\
 Raises pycurl.error exception upon failure.\n\
 \n\
-.. _curl_easy_pause: http://curl.haxx.se/libcurl/c/curl_easy_pause.html";
+.. _curl_easy_pause: https://curl.haxx.se/libcurl/c/curl_easy_pause.html";
 
 PYCURL_INTERNAL const char curl_perform_doc[] = "perform() -> None\n\
 \n\
@@ -89,7 +217,51 @@ Corresponds to `curl_easy_perform`_ in libcurl.\n\
 Raises pycurl.error exception upon failure.\n\
 \n\
 .. _curl_easy_perform:\n\
-    http://curl.haxx.se/libcurl/c/curl_easy_perform.html";
+    https://curl.haxx.se/libcurl/c/curl_easy_perform.html";
+
+PYCURL_INTERNAL const char curl_perform_rb_doc[] = "perform_rb() -> response_body\n\
+\n\
+Perform a file transfer and return response body as a byte string.\n\
+\n\
+This method arranges for response body to be saved in a StringIO\n\
+(Python 2) or BytesIO (Python 3) instance, then invokes :ref:`perform <perform>`\n\
+to perform the file transfer, then returns the value of the StringIO/BytesIO\n\
+instance which is a ``str`` instance on Python 2 and ``bytes`` instance\n\
+on Python 3. Errors during transfer raise ``pycurl.error`` exceptions\n\
+just like in :ref:`perform <perform>`.\n\
+\n\
+Use :ref:`perform_rs <perform_rs>` to retrieve response body as a string\n\
+(``str`` instance on both Python 2 and 3).\n\
+\n\
+Raises ``pycurl.error`` exception upon failure.\n\
+\n\
+*Added in version 7.43.0.2.*";
+
+PYCURL_INTERNAL const char curl_perform_rs_doc[] = "perform_rs() -> response_body\n\
+\n\
+Perform a file transfer and return response body as a string.\n\
+\n\
+On Python 2, this method arranges for response body to be saved in a StringIO\n\
+instance, then invokes :ref:`perform <perform>`\n\
+to perform the file transfer, then returns the value of the StringIO instance.\n\
+This behavior is identical to :ref:`perform_rb <perform_rb>`.\n\
+\n\
+On Python 3, this method arranges for response body to be saved in a BytesIO\n\
+instance, then invokes :ref:`perform <perform>`\n\
+to perform the file transfer, then decodes the response body in Python's\n\
+default encoding and returns the decoded body as a Unicode string\n\
+(``str`` instance). *Note:* decoding happens after the transfer finishes,\n\
+thus an encoding error implies the transfer/network operation succeeded.\n\
+\n\
+Any transfer errors raise ``pycurl.error`` exception,\n\
+just like in :ref:`perform <perform>`.\n\
+\n\
+Use :ref:`perform_rb <perform_rb>` to retrieve response body as a byte\n\
+string (``bytes`` instance on Python 3) without attempting to decode it.\n\
+\n\
+Raises ``pycurl.error`` exception upon failure.\n\
+\n\
+*Added in version 7.43.0.2.*";
 
 PYCURL_INTERNAL const char curl_reset_doc[] = "reset() -> None\n\
 \n\
@@ -98,7 +270,13 @@ live connections, session ID cache, DNS cache, cookies, and shares.\n\
 \n\
 Corresponds to `curl_easy_reset`_ in libcurl.\n\
 \n\
-.. _curl_easy_reset: http://curl.haxx.se/libcurl/c/curl_easy_reset.html";
+.. _curl_easy_reset: https://curl.haxx.se/libcurl/c/curl_easy_reset.html";
+
+PYCURL_INTERNAL const char curl_set_ca_certs_doc[] = "set_ca_certs() -> None\n\
+\n\
+Load ca certs from provided unicode string.\n\
+\n\
+Note that certificates will be added only when cURL starts new connection.";
 
 PYCURL_INTERNAL const char curl_setopt_doc[] = "setopt(option, value) -> None\n\
 \n\
@@ -107,7 +285,8 @@ Set curl session option. Corresponds to `curl_easy_setopt`_ in libcurl.\n\
 *option* specifies which option to set. PycURL defines constants\n\
 corresponding to ``CURLOPT_*`` constants in libcurl, except that\n\
 the ``CURLOPT_`` prefix is removed. For example, ``CURLOPT_URL`` is\n\
-exposed in PycURL as ``pycurl.URL``. For convenience, ``CURLOPT_*``\n\
+exposed in PycURL as ``pycurl.URL``, with some exceptions as detailed below.\n\
+For convenience, ``CURLOPT_*``\n\
 constants are also exposed on the Curl objects themselves::\n\
 \n\
     import pycurl\n\
@@ -116,11 +295,18 @@ constants are also exposed on the Curl objects themselves::\n\
     # Same as:\n\
     c.setopt(c.URL, \"http://www.python.org/\")\n\
 \n\
-In order to distinguish between similarly-named CURLOPT and CURLINFO\n\
-constants, some have CURLOPT constants have ``OPT_`` prefixes.\n\
-These are ``OPT_FILETIME`` and ``OPT_CERTINFO``.\n\
-As an exception to the exception, ``COOKIELIST`` does not have an ``OPT_``\n\
-prefix but the corresponding CURLINFO option is ``INFO_COOKIELIST``.\n\
+The following are exceptions to option constant naming convention:\n\
+\n\
+- ``CURLOPT_FILETIME`` is mapped as ``pycurl.OPT_FILETIME``\n\
+- ``CURLOPT_CERTINFO`` is mapped as ``pycurl.OPT_CERTINFO``\n\
+- ``CURLOPT_COOKIELIST`` is mapped as ``pycurl.COOKIELIST``\n\
+  and, as of PycURL 7.43.0.2, also as ``pycurl.OPT_COOKIELIST``\n\
+- ``CURLOPT_RTSP_CLIENT_CSEQ`` is mapped as ``pycurl.OPT_RTSP_CLIENT_CSEQ``\n\
+- ``CURLOPT_RTSP_REQUEST`` is mapped as ``pycurl.OPT_RTSP_REQUEST``\n\
+- ``CURLOPT_RTSP_SERVER_CSEQ`` is mapped as ``pycurl.OPT_RTSP_SERVER_CSEQ``\n\
+- ``CURLOPT_RTSP_SESSION_ID`` is mapped as ``pycurl.OPT_RTSP_SESSION_ID``\n\
+- ``CURLOPT_RTSP_STREAM_URI`` is mapped as ``pycurl.OPT_RTSP_STREAM_URI``\n\
+- ``CURLOPT_RTSP_TRANSPORT`` is mapped as ``pycurl.OPT_RTSP_TRANSPORT``\n\
 \n\
 *value* specifies the value to set the option to. Different options accept\n\
 values of different types:\n\
@@ -201,7 +387,7 @@ Raises TypeError when the option value is not of a type accepted by the\n\
 respective option, and pycurl.error exception when libcurl rejects the\n\
 option or its value.\n\
 \n\
-.. _curl_easy_setopt: http://curl.haxx.se/libcurl/c/curl_easy_setopt.html";
+.. _curl_easy_setopt: https://curl.haxx.se/libcurl/c/curl_easy_setopt.html";
 
 PYCURL_INTERNAL const char curl_setopt_string_doc[] = "setopt_string(option, value) -> None\n\
 \n\
@@ -233,7 +419,7 @@ Example setting URL via ``setopt_string``::\n\
     c = pycurl.Curl()\n\
     c.setopt_string(10002, \"http://www.python.org/\")\n\
 \n\
-.. _CURLOPT_POSTFIELDS: http://curl.haxx.se/libcurl/c/CURLOPT_POSTFIELDS.html";
+.. _CURLOPT_POSTFIELDS: https://curl.haxx.se/libcurl/c/CURLOPT_POSTFIELDS.html";
 
 PYCURL_INTERNAL const char curl_unsetopt_doc[] = "unsetopt(option) -> None\n\
 \n\
@@ -261,12 +447,13 @@ PYCURL_INTERNAL const char multi_add_handle_doc[] = "add_handle(Curl object) -> 
 Corresponds to `curl_multi_add_handle`_ in libcurl. This method adds an\n\
 existing and valid Curl object to the CurlMulti object.\n\
 \n\
-IMPORTANT NOTE: add_handle does not implicitly add a Python reference to the\n\
-Curl object (and thus does not increase the reference count on the Curl\n\
-object).\n\
+*Changed in version 7.43.0.2:* add_handle now ensures that the Curl object\n\
+is not garbage collected while it is being used by a CurlMulti object.\n\
+Previously application had to maintain an outstanding reference to the Curl\n\
+object to keep it from being garbage collected.\n\
 \n\
 .. _curl_multi_add_handle:\n\
-    http://curl.haxx.se/libcurl/c/curl_multi_add_handle.html";
+    https://curl.haxx.se/libcurl/c/curl_multi_add_handle.html";
 
 PYCURL_INTERNAL const char multi_assign_doc[] = "assign(sockfd, object) -> None\n\
 \n\
@@ -274,7 +461,7 @@ Creates an association in the multi handle between the given socket and\n\
 a private object in the application.\n\
 Corresponds to `curl_multi_assign`_ in libcurl.\n\
 \n\
-.. _curl_multi_assign: http://curl.haxx.se/libcurl/c/curl_multi_assign.html";
+.. _curl_multi_assign: https://curl.haxx.se/libcurl/c/curl_multi_assign.html";
 
 PYCURL_INTERNAL const char multi_close_doc[] = "close() -> None\n\
 \n\
@@ -283,7 +470,7 @@ automatically called by pycurl when a CurlMulti object no longer has any\n\
 references to it, but can also be called explicitly.\n\
 \n\
 .. _curl_multi_cleanup:\n\
-    http://curl.haxx.se/libcurl/c/curl_multi_cleanup.html";
+    https://curl.haxx.se/libcurl/c/curl_multi_cleanup.html";
 
 PYCURL_INTERNAL const char multi_fdset_doc[] = "fdset() -> tuple of lists with active file descriptors, readable, writeable, exceptions\n\
 \n\
@@ -297,7 +484,7 @@ Example usage::\n\
 \n\
     import pycurl\n\
     c = pycurl.Curl()\n\
-    c.setopt(pycurl.URL, \"http://curl.haxx.se\")\n\
+    c.setopt(pycurl.URL, \"https://curl.haxx.se\")\n\
     m = pycurl.CurlMulti()\n\
     m.add_handle(c)\n\
     while 1:\n\
@@ -310,7 +497,7 @@ Example usage::\n\
             if ret != pycurl.E_CALL_MULTI_PERFORM: break\n\
 \n\
 .. _curl_multi_fdset:\n\
-    http://curl.haxx.se/libcurl/c/curl_multi_fdset.html";
+    https://curl.haxx.se/libcurl/c/curl_multi_fdset.html";
 
 PYCURL_INTERNAL const char multi_info_read_doc[] = "info_read([max_objects]) -> tuple(number of queued messages, a list of successful objects, a list of failed objects)\n\
 \n\
@@ -324,14 +511,14 @@ number, curl error message)* for each failed curl object. The number of\n\
 queued messages after this method has been called is also returned.\n\
 \n\
 .. _curl_multi_info_read:\n\
-    http://curl.haxx.se/libcurl/c/curl_multi_info_read.html";
+    https://curl.haxx.se/libcurl/c/curl_multi_info_read.html";
 
 PYCURL_INTERNAL const char multi_perform_doc[] = "perform() -> tuple of status and the number of active Curl objects\n\
 \n\
 Corresponds to `curl_multi_perform`_ in libcurl.\n\
 \n\
 .. _curl_multi_perform:\n\
-    http://curl.haxx.se/libcurl/c/curl_multi_perform.html";
+    https://curl.haxx.se/libcurl/c/curl_multi_perform.html";
 
 PYCURL_INTERNAL const char multi_remove_handle_doc[] = "remove_handle(Curl object) -> None\n\
 \n\
@@ -343,7 +530,7 @@ from the Curl object (and thus does not decrease the reference count on the\n\
 Curl object).\n\
 \n\
 .. _curl_multi_remove_handle:\n\
-    http://curl.haxx.se/libcurl/c/curl_multi_remove_handle.html";
+    https://curl.haxx.se/libcurl/c/curl_multi_remove_handle.html";
 
 PYCURL_INTERNAL const char multi_select_doc[] = "select([timeout]) -> number of ready file descriptors or -1 on timeout\n\
 \n\
@@ -357,7 +544,7 @@ Example usage::\n\
 \n\
     import pycurl\n\
     c = pycurl.Curl()\n\
-    c.setopt(pycurl.URL, \"http://curl.haxx.se\")\n\
+    c.setopt(pycurl.URL, \"https://curl.haxx.se\")\n\
     m = pycurl.CurlMulti()\n\
     m.add_handle(c)\n\
     while 1:\n\
@@ -407,7 +594,7 @@ Raises TypeError when the option value is not of a type accepted by the\n\
 respective option, and pycurl.error exception when libcurl rejects the\n\
 option or its value.\n\
 \n\
-.. _curl_multi_setopt: http://curl.haxx.se/libcurl/c/curl_multi_setopt.html";
+.. _curl_multi_setopt: https://curl.haxx.se/libcurl/c/curl_multi_setopt.html";
 
 PYCURL_INTERNAL const char multi_socket_action_doc[] = "socket_action(sockfd, ev_bitmask) -> tuple\n\
 \n\
@@ -415,7 +602,7 @@ Returns result from doing a socket_action() on the curl multi file descriptor\n\
 with the given timeout.\n\
 Corresponds to `curl_multi_socket_action`_ in libcurl.\n\
 \n\
-.. _curl_multi_socket_action: http://curl.haxx.se/libcurl/c/curl_multi_socket_action.html";
+.. _curl_multi_socket_action: https://curl.haxx.se/libcurl/c/curl_multi_socket_action.html";
 
 PYCURL_INTERNAL const char multi_socket_all_doc[] = "socket_all() -> Tuple.\n\
 \n\
@@ -427,7 +614,7 @@ PYCURL_INTERNAL const char multi_timeout_doc[] = "timeout() -> int\n\
 Returns how long to wait for action before proceeding.\n\
 Corresponds to `curl_multi_timeout`_ in libcurl.\n\
 \n\
-.. _curl_multi_timeout: http://curl.haxx.se/libcurl/c/curl_multi_timeout.html";
+.. _curl_multi_timeout: https://curl.haxx.se/libcurl/c/curl_multi_timeout.html";
 
 PYCURL_INTERNAL const char pycurl_global_cleanup_doc[] = "global_cleanup() -> None\n\
 \n\
@@ -435,7 +622,7 @@ Cleanup curl environment.\n\
 \n\
 Corresponds to `curl_global_cleanup`_ in libcurl.\n\
 \n\
-.. _curl_global_cleanup: http://curl.haxx.se/libcurl/c/curl_global_cleanup.html";
+.. _curl_global_cleanup: https://curl.haxx.se/libcurl/c/curl_global_cleanup.html";
 
 PYCURL_INTERNAL const char pycurl_global_init_doc[] = "global_init(option) -> None\n\
 \n\
@@ -446,7 +633,7 @@ pycurl.GLOBAL_ALL, pycurl.GLOBAL_NOTHING, pycurl.GLOBAL_DEFAULT.\n\
 \n\
 Corresponds to `curl_global_init`_ in libcurl.\n\
 \n\
-.. _curl_global_init: http://curl.haxx.se/libcurl/c/curl_global_init.html";
+.. _curl_global_init: https://curl.haxx.se/libcurl/c/curl_global_init.html";
 
 PYCURL_INTERNAL const char pycurl_module_doc[] = "This module implements an interface to the cURL library.\n\
 \n\
@@ -479,7 +666,7 @@ Example usage::\n\
     'imap', 'imaps', 'pop3', 'pop3s', 'rtsp', 'smtp', 'smtps', 'telnet',\n\
     'tftp'), None, 0, None)\n\
 \n\
-.. _curl_version_info: http://curl.haxx.se/libcurl/c/curl_version_info.html";
+.. _curl_version_info: https://curl.haxx.se/libcurl/c/curl_version_info.html";
 
 PYCURL_INTERNAL const char share_doc[] = "CurlShare() -> New CurlShare object\n\
 \n\
@@ -496,7 +683,7 @@ automatically called by pycurl when a CurlShare object no longer has\n\
 any references to it, but can also be called explicitly.\n\
 \n\
 .. _curl_share_cleanup:\n\
-    http://curl.haxx.se/libcurl/c/curl_share_cleanup.html";
+    https://curl.haxx.se/libcurl/c/curl_share_cleanup.html";
 
 PYCURL_INTERNAL const char share_setopt_doc[] = "setopt(option, value) -> None\n\
 \n\
@@ -514,7 +701,7 @@ Example usage::\n\
     s = pycurl.CurlShare()\n\
     s.setopt(pycurl.SH_SHARE, pycurl.LOCK_DATA_COOKIE)\n\
     s.setopt(pycurl.SH_SHARE, pycurl.LOCK_DATA_DNS)\n\
-    curl.setopt(pycurl.URL, 'http://curl.haxx.se')\n\
+    curl.setopt(pycurl.URL, 'https://curl.haxx.se')\n\
     curl.setopt(pycurl.SHARE, s)\n\
     curl.perform()\n\
     curl.close()\n\
@@ -522,5 +709,5 @@ Example usage::\n\
 Raises pycurl.error exception upon failure.\n\
 \n\
 .. _curl_share_setopt:\n\
-    http://curl.haxx.se/libcurl/c/curl_share_setopt.html";
+    https://curl.haxx.se/libcurl/c/curl_share_setopt.html";
 

@@ -12,6 +12,7 @@ pycurl (7.43.0-3) UNRELEASED; urgency=medium
   * d/tests: Use AUTOPKGTEST_TMP instead of ADTTMP
   * d/control: Remove ancient X-Python3-Version field
   * Convert git repository from git-dpm to gbp layout
+  * Use debhelper-compat instead of debian/compat.
 
  -- Barry Warsaw <barry@debian.org>  Sun, 27 Aug 2017 23:35:02 -0400
 

@@ -2,9 +2,11 @@
 # -*- coding: utf-8 -*-
 # vi:ts=4:et
 
+from . import localhost
 import pycurl
 import unittest
 import select
+import flaky
 
 from . import appmanager
 from . import util
@@ -23,6 +25,7 @@ def teardown_module(mod):
     teardown_module_2(mod)
     teardown_module_1(mod)
 
+@flaky.flaky(max_runs=3)
 class MultiSocketSelectTest(unittest.TestCase):
     def test_multi_socket_select(self):
         sockets = set()
@@ -32,13 +35,13 @@ class MultiSocketSelectTest(unittest.TestCase):
             # we need libcurl to actually wait on the handles,
             # and initiate polling.
             # thus use urls that sleep for a bit.
-            'http://localhost:8380/short_wait',
-            'http://localhost:8381/short_wait',
-            'http://localhost:8382/short_wait',
+            'http://%s:8380/short_wait' % localhost,
+            'http://%s:8381/short_wait' % localhost,
+            'http://%s:8382/short_wait' % localhost,
         ]
 
         socket_events = []
-        
+
         # socket callback
         def socket(event, socket, multi, data):
             if event == pycurl.POLL_REMOVE:
@@ -55,7 +58,7 @@ class MultiSocketSelectTest(unittest.TestCase):
         m.setopt(pycurl.M_SOCKETFUNCTION, socket)
         m.handles = []
         for url in urls:
-            c = pycurl.Curl()
+            c = util.DefaultCurl()
             # save info in standard Python attributes
             c.url = url
             c.body = util.BytesIO()
@@ -71,7 +74,7 @@ class MultiSocketSelectTest(unittest.TestCase):
 
         while (pycurl.E_CALL_MULTI_PERFORM==m.socket_all()[0]):
             pass
-            
+
         timeout = m.timeout()
 
         # timeout might be -1, indicating that all work is done
@@ -101,18 +104,18 @@ class MultiSocketSelectTest(unittest.TestCase):
         for c in m.handles:
             self.assertEqual('success', c.body.getvalue().decode())
             self.assertEqual(200, c.http_code)
-            
+
             # multi, not curl handle
             self.check(pycurl.POLL_IN, m, socket_events)
             self.check(pycurl.POLL_REMOVE, m, socket_events)
-        
+
         # close handles
         for c in m.handles:
             # pycurl API calls
             m.remove_handle(c)
             c.close()
         m.close()
-    
+
     def check(self, event, multi, socket_events):
         for event_, multi_ in socket_events:
             if event == event_ and multi == multi_:

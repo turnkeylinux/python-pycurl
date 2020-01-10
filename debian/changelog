@@ -1,3 +1,12 @@
+pycurl (7.43.0.2-1) UNRELEASED; urgency=medium
+
+  * Team upload.
+  * debian/control
+    - remove python-bottle, add python3-bottle to b-d; src:pycurl was the last
+      rdep for bin:python-bottle
+
+ -- Sandro Tosi <morph@debian.org>  Thu, 09 Jan 2020 23:34:36 -0500
+
 pycurl (7.43.0.2-0.1) unstable; urgency=medium
 
   [ Iain R. Learmonth ]

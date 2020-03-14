@@ -1,8 +1,12 @@
 pycurl (7.43.0.2-2) UNRELEASED; urgency=medium
 
+  [ Debian Janitor ]
   * Bump debhelper from old 9 to 12.
 
- -- Debian Janitor <janitor@jelmer.uk>  Fri, 10 Jan 2020 05:29:56 +0000
+  [ Sandro Tosi ]
+  * Use python3-sphinx to build doc
+
+ -- Sandro Tosi <morph@debian.org>  Sat, 14 Mar 2020 01:38:20 -0400
 
 pycurl (7.43.0.2-1) unstable; urgency=medium
 

@@ -2,3 +2,4 @@
 20_build_doc_for_debian.patch
 30_debianize_tests.patch
 0004-Removed-privacy-breach-in-docs.patch
+py3k-doc.patch

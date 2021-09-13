@@ -1,4 +1,5 @@
 10_setup.py.patch
 20_build_doc_for_debian.patch
 30_skip_tests.patch
+40_tweak_tests.patch
 0004-Removed-privacy-breach-in-docs.patch

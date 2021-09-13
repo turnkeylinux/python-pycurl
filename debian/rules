@@ -31,7 +31,7 @@ override_dh_auto_build:
 	python2 setup.py build ; \
 
 override_dh_auto_install:
-	python setup.py install --root=$(CURDIR)/debian/python-pycurl --install-layout=deb; \
+	python2 setup.py install --root=$(CURDIR)/debian/python-pycurl --install-layout=deb; \
 
 	# Remove documentation as installed by setup.py
 	rm -rf $(CURDIR)/debian/python*-pycurl*/usr/share/doc/pycurl

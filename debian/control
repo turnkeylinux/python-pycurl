@@ -31,16 +31,3 @@ Description: Python bindings to libcurl
  NOTE: the SSL support is provided by GnuTLS.
  .
  This package contains PyCURL for Python 2.
-
-Package: python-pycurl-dbg
-Section: debug
-Architecture: any
-Depends: python-dbg,
-         python-pycurl (= ${binary:Version}),
-         ${misc:Depends},
-         ${shlibs:Depends},
-Description: Python bindings to libcurl (debug extension)
- This module provides the Python bindings to libcurl. Please refer to
- the libcurl documentation available in libcurl4-gnutls-dev Debian package.
- .
- This package contains the extension built for the Python 2 debug interpreter.

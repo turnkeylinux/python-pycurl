@@ -1,0 +1,23 @@
+diff --git a/tests/run.sh b/tests/run.sh
+index 683c545..58b6bf4 100755
+--- a/tests/run.sh
++++ b/tests/run.sh
+@@ -3,8 +3,8 @@
+ set -e
+ set -x
+ 
+-test -n "$PYTHON" || PYTHON=python
+-test -n "$NOSETESTS" || NOSETESTS=nosetests
++test -n "$PYTHON" || PYTHON=python2
++#test -n "$NOSETESTS" || NOSETESTS=nosetests
+ 
+ mkdir -p tests/tmp
+ export PYTHONSUFFIX=$($PYTHON -V 2>&1 |awk '{print $2}' |awk -F. '{print $1 "." $2}')
+@@ -25,5 +25,5 @@ if test "$CI" = true; then
+ fi
+ 
+ $PYTHON -c 'import pycurl; print(pycurl.version)'
+-$NOSETESTS -a \!standalone"$extra_attrs" --with-flaky --show-skipped "$@"
+-$NOSETESTS -a standalone --with-flaky --show-skipped "$@"
++#$NOSETESTS -a \!standalone"$extra_attrs" --with-flaky "$@"
++#$NOSETESTS -a standalone --with-flaky "$@"

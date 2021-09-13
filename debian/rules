@@ -23,7 +23,7 @@ export https_proxy = https://127.0.0.1:9/
 
 
 %:
-	dh $@ --with python2,python3,sphinxdoc
+	dh $@ --with python2
 
 override_dh_auto_build:
 	make gen
@@ -34,10 +34,8 @@ override_dh_auto_build:
 	done
 
 override_dh_auto_install:
-	for py in $(PY2VERS); do \
-		python$$py setup.py install --root=$(CURDIR)/debian/python-pycurl --install-layout=deb; \
-		python$$py-dbg setup.py install --root=$(CURDIR)/debian/python-pycurl-dbg --install-layout=deb; \
-	done
+	python setup.py install --root=$(CURDIR)/debian/python-pycurl --install-layout=deb; \
+	python-dbg setup.py install --root=$(CURDIR)/debian/python-pycurl-dbg --install-layout=deb; \
 
 	# Remove documentation as installed by setup.py
 	rm -rf $(CURDIR)/debian/python*-pycurl*/usr/share/doc/pycurl

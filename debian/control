@@ -10,8 +10,6 @@ Build-Depends:
                libssh2-1-dev,
                python-all-dbg,
                python-all-dev (>= 2.6.6-3~),
-               python-flaky,
-               python-nose,
                python3-sphinx,
                python3-all-dbg,
                python3-all-dev,

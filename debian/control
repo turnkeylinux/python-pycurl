@@ -10,11 +10,6 @@ Build-Depends:
                libssh2-1-dev,
                python-all-dbg,
                python-all-dev (>= 2.6.6-3~),
-               python3-sphinx,
-               python3-all-dbg,
-               python3-all-dev,
-               python3-bottle,
-               python3-flaky,
 Standards-Version: 3.9.8
 X-Python-Version: all
 Homepage: http://pycurl.sourceforge.net
@@ -37,22 +32,6 @@ Description: Python bindings to libcurl
  .
  This package contains PyCURL for Python 2.
 
-Package: python3-pycurl
-Architecture: any
-Suggests: libcurl4-gnutls-dev,
-          python-pycurl-doc,
-          python3-pycurl-dbg,
-Depends: ${misc:Depends},
-         ${python3:Depends},
-         ${shlibs:Depends},
-Description: Python bindings to libcurl (Python 3)
- This module provides the Python bindings to libcurl. Please refer to
- the libcurl documentation available in libcurl4-gnutls-dev Debian package.
- .
- NOTE: the SSL support is provided by GnuTLS.
- .
- This package contains PyCURL for Python 3.
-
 Package: python-pycurl-dbg
 Section: debug
 Architecture: any
@@ -65,28 +44,3 @@ Description: Python bindings to libcurl (debug extension)
  the libcurl documentation available in libcurl4-gnutls-dev Debian package.
  .
  This package contains the extension built for the Python 2 debug interpreter.
-
-Package: python3-pycurl-dbg
-Section: debug
-Architecture: any
-Depends: python3-dbg,
-         python3-pycurl (= ${binary:Version}),
-         ${misc:Depends},
-         ${shlibs:Depends},
-Description: Python bindings to libcurl (debug extension, Python 3)
- This module provides the Python bindings to libcurl. Please refer to
- the libcurl documentation available in libcurl4-gnutls-dev Debian package.
- .
- This package contains the extension built for the Python 3 debug interpreter.
-
-Package: python-pycurl-doc
-Architecture: all
-Section: doc
-Depends: ${misc:Depends},
-Description: Python bindings to libcurl (documentation)
- This module provides the Python bindings to libcurl. Please refer to
- the libcurl documentation available in libcurl4-gnutls-dev Debian package.
- .
- NOTE: the SSL support is provided by GnuTLS.
- .
- This package contains the PyCURL documentation.

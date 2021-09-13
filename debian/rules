@@ -28,29 +28,15 @@ export https_proxy = https://127.0.0.1:9/
 override_dh_auto_build:
 	make gen
 	set -e ;\
-	for py in $(PY2VERS) $(PY3VERS) ; do \
+	for py in $(PY2VERS) ; do \
 		python$$py setup.py build ; \
 		python$$py-dbg setup.py build ; \
 	done
-	mkdir -p www/htdocs/doc
-	$(MAKE) docs
-
-override_dh_auto_test:
-ifeq ($(filter nocheck,$(DEB_BUILD_OPTIONS)),)
-	-set -e ;\
-	for py in $(PY2VERS) $(PY3VERS) ; do \
-		PYTHON=$$py make test; \
-	done
-endif
 
 override_dh_auto_install:
 	for py in $(PY2VERS); do \
 		python$$py setup.py install --root=$(CURDIR)/debian/python-pycurl --install-layout=deb; \
 		python$$py-dbg setup.py install --root=$(CURDIR)/debian/python-pycurl-dbg --install-layout=deb; \
-	done
-	for py in $(PY3VERS); do \
-		python$$py setup.py install --root=$(CURDIR)/debian/python3-pycurl --install-layout=deb; \
-		python$$py-dbg setup.py install --root=$(CURDIR)/debian/python3-pycurl-dbg --install-layout=deb; \
 	done
 
 	# Remove documentation as installed by setup.py

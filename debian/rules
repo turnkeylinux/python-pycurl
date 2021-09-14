@@ -41,21 +41,14 @@ override_dh_auto_install:
 
 override_dh_installdocs:
 	mkdir -p debian/python-pycurl-doc/usr/share/doc/python-pycurl-doc/html
-	cp -a build/doc/*.html $(CURDIR)/debian/python-pycurl-doc/usr/share/doc/python-pycurl-doc/html
-	dh_installdocs -ppython-pycurl -ppython-pycurl-dbg --link-doc=python-pycurl
-	dh_installdocs -ppython3-pycurl -ppython3-pycurl-dbg --link-doc=python3-pycurl
-	dh_installdocs -ppython-pycurl-doc
-
-override_dh_installexamples:
-	dh_installexamples -ppython-pycurl-doc examples/*
+	dh_installdocs -ppython-pycurl --link-doc=python-pycurl
 
 override_dh_installchangelogs:
 	dh_installchangelogs ChangeLog
 
 override_dh_strip:
 ifeq (,$(filter nostrip,$(DEB_BUILD_OPTIONS)))
-	dh_strip -ppython-pycurl --dbg-package=python-pycurl-dbg
-	dh_strip -ppython3-pycurl --dbg-package=python3-pycurl-dbg
+	dh_strip -ppython-pycurl
 endif
 
 override_dh_compress:

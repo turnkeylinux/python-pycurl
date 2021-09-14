@@ -1,0 +1,21 @@
+diff --git a/Makefile b/Makefile
+index bf531e3..14a5148 100644
+--- a/Makefile
++++ b/Makefile
+@@ -5,7 +5,7 @@
+ 
+ SHELL = /bin/sh
+ 
+-PYTHON = python
++PYTHON = python2
+ NOSETESTS = nosetests
+ PYFLAKES = pyflakes
+ 
+@@ -103,7 +103,6 @@ do-test:
+ 	cd tests/fake-curl/libcurl && make
+ 	./tests/run.sh
+ 	./tests/ext/test-suite.sh
+-	$(PYFLAKES) python examples tests setup.py winbuild.py
+ 
+ test: build do-test
+ test-release: build-release do-test

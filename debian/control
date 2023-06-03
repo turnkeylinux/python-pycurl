@@ -3,12 +3,12 @@ Section: python
 Priority: optional
 Maintainer: Jeremy Davis <jeremy@turnkeylinux.org>
 Build-Depends:
-               dh-python,
+               dh-python2 (>= 4.20201102+turnkey0),
                libcurl4-gnutls-dev (>= 7.57.0),
                libgnutls28-dev,
                libssh2-1-dev,
-               python2.7-dbg,
-               python2.7-dev,
+               python-all-dbg,
+               python-all-dev (>= 2.6.6-3~),
 Standards-Version: 3.9.8
 X-Python-Version: all
 Homepage: http://pycurl.sourceforge.net

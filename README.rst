@@ -1,6 +1,8 @@
 PycURL -- A Python Interface To The cURL library
 ================================================
 
+NOTE: This is a TurnKey py2 fork - for use with TKLBAM
+
 .. image:: https://api.travis-ci.org/pycurl/pycurl.png
 	   :target: https://travis-ci.org/pycurl/pycurl
 
